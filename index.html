@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>CosmosAR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    :root {
+      --bg:#060818; --border:rgba(255,255,255,0.08);
+      --purple:#a78bfa; --blue:#60a5fa; --green:#34d399;
+      --muted:rgba(255,255,255,0.45); --tab-h:58px;
+    }
+    html, body { height:100%; background:var(--bg); font-family:'Space Grotesk',sans-serif; color:#fff; overflow:hidden; }
+
+    /* ── TAB BAR ── */
+    .tab-bar {
+      position:fixed; bottom:0; left:0; right:0; height:var(--tab-h);
+      background:rgba(13,17,23,0.97); border-top:1px solid var(--border);
+      display:flex; z-index:9999; backdrop-filter:blur(12px);
+    }
+    .tab-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; padding:6px 4px; }
+    .tab-icon { font-size:20px; transition:transform 0.2s; }
+    .tab-label { font-size:10px; color:var(--muted); font-weight:500; }
+    .tab-btn.active .tab-label { color:var(--purple); }
+    .tab-btn.active .tab-icon { transform:translateY(-2px); filter:drop-shadow(0 0 6px rgba(167,139,250,0.7)); }
+
+    /* ── PANELS ── */
+    .panel { position:fixed; top:0; left:0; right:0; bottom:var(--tab-h); display:none; }
+    .panel.active { display:block; }
+
+    /* ── DEMO PANEL ── */
+    #demo-panel { background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; }
+    .demo-header { padding:14px 16px 6px; background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,0.18) 0%,transparent 60%); flex-shrink:0; }
+    .demo-title { font-size:20px; font-weight:700; background:linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .demo-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+    #solarCanvas { display:block; margin:0 auto; cursor:pointer; touch-action:none; flex-shrink:0; }
+    .info-bar { margin:0 12px; padding:10px 14px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:14px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+    .info-name { font-size:14px; font-weight:600; }
+    .info-fact { font-size:11px; color:var(--muted); margin-top:1px; line-height:1.4; }
+    .ctrl-row { display:flex; gap:8px; padding:8px 12px; flex-shrink:0; }
+    .ctrl-btn { flex:1; padding:8px 4px; border-radius:10px; border:1px solid var(--border); background:rgba(255,255,255,0.03); color:var(--muted); font-size:11px; font-weight:600; font-family:inherit; cursor:pointer; text-align:center; }
+    .ctrl-btn.on { background:rgba(167,139,250,0.12); border-color:rgba(167,139,250,0.35); color:var(--purple); }
+    .chips-row { display:flex; gap:8px; overflow-x:auto; padding:4px 12px 12px; scrollbar-width:none; flex-shrink:0; }
+    .chips-row::-webkit-scrollbar { display:none; }
+    .p-chip { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding:7px 10px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,0.03); cursor:pointer; min-width:52px; }
+    .p-chip.sel { border-color:rgba(167,139,250,0.45); background:rgba(167,139,250,0.1); }
+    .p-chip-dot { width:26px; height:26px; border-radius:50%; }
+    .p-chip-name { font-size:9px; color:var(--muted); font-weight:500; }
+
+    /* ── AR PANEL ── */
+    #ar-panel { background:#000; overflow:hidden; }
+
+    /* AR лаунч-экран */
+    #ar-launch {
+      position:absolute; inset:0;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:28px 24px; gap:0;
+      background:radial-gradient(ellipse at 50% 30%,rgba(124,58,237,0.2) 0%,transparent 60%);
+    }
+    .ar-launch-icon { position:relative; width:100px; height:100px; margin-bottom:20px; }
+    .ar-ring { position:absolute; inset:0; border-radius:50%; border:2px solid rgba(167,139,250,0.2); animation:arPulse 2s ease-in-out infinite; }
+    .ar-ring2 { position:absolute; inset:10px; border-radius:50%; border:2px solid rgba(167,139,250,0.35); animation:arPulse 2s ease-in-out infinite 0.4s; }
+    .ar-ring-inner { position:absolute; inset:20px; border-radius:50%; background:rgba(124,58,237,0.15); border:1px solid rgba(167,139,250,0.4); display:flex; align-items:center; justify-content:center; font-size:28px; }
+    @keyframes arPulse { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.08);opacity:1} }
+    .ar-launch-title { font-size:22px; font-weight:700; background:linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px; }
+    .ar-launch-sub { font-size:12px; color:var(--muted); text-align:center; line-height:1.6; margin-bottom:24px; }
+    #btn-start-ar {
+      display:flex; align-items:center; gap:10px; padding:13px 32px;
+      background:linear-gradient(135deg,#7c3aed,#2563eb); border-radius:24px;
+      font-size:15px; font-weight:700; color:#fff; cursor:pointer; border:none; font-family:inherit;
+      box-shadow:0 4px 24px rgba(124,58,237,0.5); margin-bottom:28px;
+    }
+    .launch-steps { width:100%; display:flex; flex-direction:column; gap:8px; }
+    .launch-step { display:flex; align-items:flex-start; gap:10px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:13px; padding:11px 13px; }
+    .step-n { width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#2563eb); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+    .step-h { font-size:12px; font-weight:600; margin-bottom:2px; }
+    .step-t { font-size:11px; color:var(--muted); line-height:1.4; }
+
+    /* AR — без маркера (камера getUserMedia + A-Frame, без AR.js) */
+    #ar-active { display:none; }
+    #ar-active.on {
+      display:block;
+      position:fixed; top:0; left:0;
+      width:100vw; height:100vh;
+      z-index:400; overflow:hidden;
+    }
+    /* Видео камеры — живёт ВНУТРИ #ar-active, не в body */
+    #ar-active video {
+      position:absolute; top:0; left:0;
+      width:100%; height:100%;
+      object-fit:cover; z-index:1;
+    }
+    /* A-Frame canvas поверх видео, прозрачный фон */
+    #ar-active a-scene { position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; }
+    #ar-active .a-canvas {
+      position:absolute; top:0; left:0;
+      width:100% !important; height:100% !important;
+      z-index:2 !important;
+    }
+    #ar-panel { z-index:10; }
+
+    /* AR оверлей */
+    .ar-overlay {
+      position:fixed; inset:0; z-index:500; pointer-events:none;
+    }
+    .ar-top-bar {
+      position:absolute; top:16px; left:50%; transform:translateX(-50%);
+      display:flex; align-items:center; gap:8px;
+      background:rgba(6,8,24,0.8); border:1px solid rgba(96,165,250,0.35); border-radius:20px;
+      padding:6px 14px; font-size:12px; color:var(--blue); backdrop-filter:blur(8px); white-space:nowrap;
+    }
+    .live { width:7px; height:7px; border-radius:50%; background:var(--green); animation:blink 1.4s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .ar-back-btn {
+      position:absolute; top:16px; left:16px;
+      width:38px; height:38px; border-radius:50%;
+      background:rgba(6,8,24,0.8); border:1px solid rgba(255,255,255,0.15);
+      display:flex; align-items:center; justify-content:center;
+      font-size:18px; cursor:pointer; backdrop-filter:blur(8px);
+      pointer-events:auto; color:#fff;
+    }
+    .ar-corner { position:absolute; width:22px; height:22px; border-color:rgba(96,165,250,0.5); border-style:solid; }
+    .ar-tl { top:62px; left:16px; border-width:2px 0 0 2px; }
+    .ar-tr { top:62px; right:16px; border-width:2px 2px 0 0; }
+    .ar-bl { bottom:80px; left:16px; border-width:0 0 2px 2px; }
+    .ar-br { bottom:80px; right:16px; border-width:0 2px 2px 0; }
+    #ar-hint {
+      position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+      background:rgba(6,8,24,0.8); border:1px solid var(--border); border-radius:12px;
+      padding:8px 18px; font-size:11px; color:var(--muted); backdrop-filter:blur(8px); white-space:nowrap;
+    }
+
+    /* Подсказка масштаба (щипок) */
+    #ar-scale-hint {
+      position:absolute; bottom:90px; left:50%; transform:translateX(-50%);
+      background:rgba(6,8,24,0.75); border:1px solid var(--border); border-radius:12px;
+      padding:6px 14px; font-size:11px; color:var(--muted); white-space:nowrap;
+      pointer-events:none; opacity:0; transition:opacity 0.4s;
+    }
+
+    /* AR — сканирующий ретикул (имитация поиска поверхности) */
+    #ar-scan {
+      display:none; position:absolute;
+      bottom:28%; left:50%; transform:translateX(-50%);
+      width:110px; height:110px; pointer-events:none;
+    }
+    #ar-scan.on { display:block; }
+    .scan-ring {
+      position:absolute; inset:0; border-radius:50%;
+      border:2px solid rgba(167,139,250,0.45);
+      animation:scanPulse 1.8s ease-in-out infinite;
+    }
+    .scan-ring2 {
+      position:absolute; inset:18px; border-radius:50%;
+      border:2px solid rgba(167,139,250,0.65);
+      animation:scanPulse 1.8s ease-in-out infinite 0.35s;
+    }
+    .scan-dot {
+      position:absolute; inset:46px; border-radius:50%;
+      background:rgba(167,139,250,0.9);
+      animation:scanPulse 1.8s ease-in-out infinite 0.7s;
+    }
+    .scan-found .scan-ring  { border-color:rgba(52,211,153,0.5); animation:none; transform:scale(1); opacity:0.9; }
+    .scan-found .scan-ring2 { border-color:rgba(52,211,153,0.75); animation:none; transform:scale(1); opacity:0.9; }
+    .scan-found .scan-dot   { background:rgba(52,211,153,0.95); animation:none; }
+    @keyframes scanPulse {
+      0%,100%{transform:scale(1);opacity:0.55}
+      50%{transform:scale(1.12);opacity:1}
+    }
+
+    /* ── GUIDE PANEL ── */
+    #guide-panel { background:var(--bg); padding:16px 14px 20px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .g-title { font-size:20px; font-weight:700; background:linear-gradient(135deg,var(--purple),var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:16px; }
+    .g-label { font-size:10px; color:rgba(167,139,250,0.6); letter-spacing:1.5px; text-transform:uppercase; margin:16px 0 8px; }
+    .g-label:first-of-type { margin-top:0; }
+    .g-step { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:14px; padding:13px; margin-bottom:8px; display:flex; gap:11px; }
+    .g-num { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#2563eb); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+    .g-sh { font-size:13px; font-weight:600; margin-bottom:2px; }
+    .g-st { font-size:11px; color:var(--muted); line-height:1.5; }
+    .pills { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px; }
+    .pill { padding:5px 12px; border-radius:20px; font-size:11px; font-weight:500; }
+    .pp { background:rgba(167,139,250,0.12); color:var(--purple); border:1px solid rgba(167,139,250,0.22); }
+    .pb { background:rgba(96,165,250,0.12); color:var(--blue); border:1px solid rgba(96,165,250,0.22); }
+    .pg { background:rgba(52,211,153,0.12); color:var(--green); border:1px solid rgba(52,211,153,0.22); }
+    .compare { display:flex; gap:8px; }
+    .ccard { flex:1; border-radius:12px; padding:12px; }
+    .cc1 { background:rgba(52,211,153,0.07); border:1px solid rgba(52,211,153,0.18); }
+    .cc2 { background:rgba(167,139,250,0.07); border:1px solid rgba(167,139,250,0.18); }
+    .cc-t { font-size:12px; font-weight:600; margin-bottom:7px; }
+    .cc-i { font-size:11px; color:var(--muted); line-height:1.7; }
+    .hiro-box { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:14px; padding:16px; text-align:center; }
+    .hiro-box img { width:130px; height:130px; border-radius:8px; display:block; margin:0 auto 10px; }
+    .hiro-desc { font-size:11px; color:var(--muted); line-height:1.5; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ TAB BAR ══════════ -->
+<div class="tab-bar">
+  <div class="tab-btn active" onclick="switchTab('demo',this)"><div class="tab-icon">🌌</div><div class="tab-label">3D Демо</div></div>
+  <div class="tab-btn" onclick="switchTab('ar',this)"><div class="tab-icon">📱</div><div class="tab-label">AR</div></div>
+  <div class="tab-btn" onclick="switchTab('guide',this)"><div class="tab-icon">📖</div><div class="tab-label">Гайд</div></div>
+</div>
+
+<!-- ══════════ DEMO PANEL ══════════ -->
+<div id="demo-panel" class="panel active">
+  <div class="demo-header">
+    <div class="demo-title">Солнечная система</div>
+    <div class="demo-sub">Тапни на планету чтобы узнать о ней</div>
+  </div>
+  <canvas id="solarCanvas"></canvas>
+  <div class="info-bar">
+    <canvas id="infoBall" width="26" height="26" style="border-radius:50%;flex-shrink:0;"></canvas>
+    <div>
+      <div class="info-name" id="infoName">Нажми на планету</div>
+      <div class="info-fact" id="infoFact">Тапни на любое тело в системе</div>
+    </div>
+  </div>
+  <div class="ctrl-row">
+    <button class="ctrl-btn" id="btnPause" onclick="togglePause()">⏸ Пауза</button>
+    <button class="ctrl-btn on" id="btnOrbits" onclick="toggleOrbits()">⬤ Орбиты</button>
+    <button class="ctrl-btn" id="btnSpeed" onclick="cycleSpeed()">⚡ 1×</button>
+  </div>
+  <div class="chips-row" id="chips"></div>
+</div>
+
+<!-- ══════════ AR PANEL ══════════ -->
+<div id="ar-panel" class="panel">
+
+  <!-- Лаунч экран -->
+  <div id="ar-launch">
+    <div class="ar-launch-icon">
+      <div class="ar-ring"></div><div class="ar-ring2"></div>
+      <div class="ar-ring-inner">🔭</div>
+    </div>
+    <div class="ar-launch-title">AR-режим</div>
+    <div class="ar-launch-sub">Солнечная система на твоём полу —<br>без маркеров, без приложений</div>
+    <button id="btn-start-ar" onclick="startAR()">📡 Запустить AR</button>
+    <div class="launch-steps">
+      <div class="launch-step"><div class="step-n">1</div><div><div class="step-h">Разреши камеру</div><div class="step-t">Нажми кнопку выше и подтверди доступ к камере</div></div></div>
+      <div class="launch-step"><div class="step-n">2</div><div><div class="step-h">Наведи на пол</div><div class="step-t">Кольцо на экране просканирует поверхность и позеленеет — это займёт ~2 секунды</div></div></div>
+      <div class="launch-step"><div class="step-n">3</div><div><div class="step-h">Тапни чтобы поставить</div><div class="step-t">Модель закрепится на поверхности. Свайп — вращение, щипок — масштаб</div></div></div>
+    </div>
+  </div>
+
+  <!-- AR активная сцена: A-Frame без маркера, вставляется динамически -->
+  <div id="ar-active"></div>
+
+  <!-- AR оверлей (всегда поверх камеры) -->
+  <div class="ar-overlay" id="ar-overlay" style="display:none;">
+    <div class="ar-back-btn" onclick="stopAR()">←</div>
+    <div class="ar-top-bar"><div class="live" id="ar-live"></div><span id="ar-status">Загрузка…</span></div>
+    <div class="ar-corner ar-tl"></div><div class="ar-corner ar-tr"></div>
+    <div class="ar-corner ar-bl"></div><div class="ar-corner ar-br"></div>
+    <div id="ar-hint">Вращай пальцем 🌌</div>
+    <!-- Сканирующий ретикул — симуляция поиска поверхности -->
+    <div id="ar-scan">
+      <div class="scan-ring"></div>
+      <div class="scan-ring2"></div>
+      <div class="scan-dot"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ GUIDE PANEL ══════════ -->
+<div id="guide-panel" class="panel">
+  <div class="g-title">Как запустить AR</div>
+  <div class="g-label">Технологии</div>
+  <div class="pills">
+    <span class="pill pp">A-Frame</span><span class="pill pg">WebGL</span>
+    <span class="pill pb">getUserMedia</span><span class="pill pp">HTML + JS</span>
+  </div>
+  <div class="g-label">Шаги</div>
+  <div class="g-step"><div class="g-num">1</div><div><div class="g-sh">Выложи файл на хостинг</div><div class="g-st">Открой <strong>app.netlify.com/drop</strong> → перетащи <code>solar-ar.html</code> → получи HTTPS-ссылку за 30 секунд</div></div></div>
+  <div class="g-step"><div class="g-num">2</div><div><div class="g-sh">Запусти на телефоне</div><div class="g-st">Открой ссылку в <strong>Chrome</strong> (Android) или <strong>Safari</strong> (iPhone) → вкладка AR → разреши камеру</div></div></div>
+  <div class="g-step"><div class="g-num">3</div><div><div class="g-sh">Вращай и масштабируй</div><div class="g-st">Свайп пальцем — вращение. Два пальца (щипок) — масштаб. Колесо мыши — масштаб на десктопе</div></div></div>
+  <div class="g-label">Важно: нужен HTTPS</div>
+  <div class="hiro-box" style="text-align:left;padding:14px 16px;">
+    <div class="hiro-desc" style="color:rgba(255,255,255,0.7);line-height:1.7;">
+      📱 На телефоне камера работает только по <strong>HTTPS</strong>.<br>
+      Localhost (127.0.0.1) — исключение, там HTTP тоже работает.<br>
+      Для публикации используй <strong>Netlify Drop</strong> — бесплатно и мгновенно.
+    </div>
+  </div>
+  <div class="g-label">Сравнение подходов</div>
+  <div class="compare">
+    <div class="ccard cc1"><div class="cc-t" style="color:var(--green)">✅ Web AR</div><div class="cc-i">— Только HTML<br>— Браузер, без установки<br>— Бесплатно<br>— Готово за 1 день</div></div>
+    <div class="ccard cc2"><div class="cc-t" style="color:var(--purple)">🚀 Unity</div><div class="cc-i">— Нативное приложение<br>— Лучшее качество AR<br>— Нужен C#<br>— 2–4 недели</div></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  ДАННЫЕ ПЛАНЕТ
+// ════════════════════════════════════════════
+const PLANETS = [
+  { id:'sun',     name:'Солнце',   type:'sun',     color:'#f97316', r:26, dist:0,   spd:0,
+    sub:'Звезда G-класса',
+    stats:[['Диаметр','1 392 000 км'],['Масса','99.86% системы'],['Темп.','5 500 °C'],['Возраст','4.6 млрд лет']],
+    fact:'Солнце содержит 99.86% всей массы системы. Свет от него до Земли идёт 8 минут.' },
+  { id:'mercury', name:'Меркурий', type:'mercury', color:'#9ca3af', r:5,  dist:58,  spd:4.7,
+    sub:'1-я планета · Скалистая',
+    stats:[['Диаметр','4 879 км'],['Год','88 дней'],['Темп.','-180 / +430°C'],['Спутники','0']],
+    fact:'Год на Меркурии длится 88 суток, но сутки — целых 176 дней.' },
+  { id:'venus',   name:'Венера',   type:'venus',   color:'#fcd34d', r:7,  dist:84,  spd:3.5,
+    sub:'2-я планета · Скалистая',
+    stats:[['Диаметр','12 104 км'],['Год','225 дней'],['Темп.','462 °C'],['Спутники','0']],
+    fact:'Самая горячая планета из-за парникового эффекта — 462°C.' },
+  { id:'earth',   name:'Земля',    type:'earth',   color:'#3b82f6', r:8,  dist:114, spd:2.98,
+    sub:'3-я планета · Скалистая',
+    stats:[['Диаметр','12 742 км'],['Год','365 дней'],['Темп.','+15°C (ср.)'],['Спутники','1 (Луна)']],
+    fact:'Единственная планета с жидкой водой и известной жизнью.' },
+  { id:'mars',    name:'Марс',     type:'mars',    color:'#ef4444', r:6,  dist:148, spd:2.41,
+    sub:'4-я планета · Скалистая',
+    stats:[['Диаметр','6 779 км'],['Год','687 дней'],['Темп.','-60°C (ср.)'],['Спутники','2']],
+    fact:'Олимп на Марсе — самый высокий вулкан в Солнечной системе (21 км).' },
+  { id:'jupiter', name:'Юпитер',  type:'jupiter', color:'#d97706', r:16, dist:190, spd:1.31,
+    sub:'5-я планета · Газовый гигант',
+    stats:[['Диаметр','139 820 км'],['Год','12 лет'],['Ветер','620 км/ч'],['Спутники','95']],
+    fact:'Большое Красное Пятно — буря размером с Землю, бушует уже 350 лет.' },
+  { id:'saturn',  name:'Сатурн',  type:'saturn',  color:'#b45309', r:13, dist:232, spd:0.97,
+    sub:'6-я планета · Газовый гигант',
+    stats:[['Диаметр','116 460 км'],['Год','29.5 лет'],['Кольца','280 000 км'],['Спутники','146']],
+    fact:'Плотность Сатурна ниже воды — он бы плавал в океане.' },
+  { id:'uranus',  name:'Уран',    type:'uranus',  color:'#22d3ee', r:10, dist:268, spd:0.68,
+    sub:'7-я планета · Ледяной гигант',
+    stats:[['Диаметр','50 724 км'],['Год','84 года'],['Темп.','-224°C'],['Спутники','28']],
+    fact:'Уран вращается лёжа на боку — ось наклонена на 98° после древнего столкновения.' },
+  { id:'neptune', name:'Нептун',  type:'neptune', color:'#3b82f6', r:9,  dist:300, spd:0.54,
+    sub:'8-я планета · Ледяной гигант',
+    stats:[['Диаметр','49 244 км'],['Год','165 лет'],['Ветер','2 100 км/ч'],['Спутники','16']],
+    fact:'Нептун — самая ветреная планета. Скорость ветра 2 100 км/ч — быстрее звука.' },
+  { id:'pluto',   name:'Плутон',  type:'pluto',   color:'#d4a85a', r:3,  dist:328, spd:0.47,
+    sub:'Карликовая планета · Пояс Койпера',
+    stats:[['Диаметр','2 376 км'],['Год','248 лет'],['Темп.','-230°C'],['Спутники','5']],
+    fact:'На Плутоне есть «Сердце Томба» — светлая равнина в форме сердца размером с Россию.' },
+];
+
+// ════════════════════════════════════════════
+//  РИСОВАНИЕ РЕАЛИСТИЧНЫХ ПЛАНЕТ
+// ════════════════════════════════════════════
+function drawPlanet(ctx, cx, cy, r, type) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.clip();
+  switch(type) {
+    case 'sun':     _sun(ctx,cx,cy,r);     break;
+    case 'mercury': _mercury(ctx,cx,cy,r); break;
+    case 'venus':   _venus(ctx,cx,cy,r);   break;
+    case 'earth':   _earth(ctx,cx,cy,r);   break;
+    case 'mars':    _mars(ctx,cx,cy,r);    break;
+    case 'jupiter': _jupiter(ctx,cx,cy,r); break;
+    case 'saturn':  _saturn(ctx,cx,cy,r);  break;
+    case 'uranus':  _uranus(ctx,cx,cy,r);  break;
+    case 'neptune': _neptune(ctx,cx,cy,r); break;
+    case 'pluto':   _pluto(ctx,cx,cy,r);   break;
+    default: { const g=ctx.createRadialGradient(cx,cy,0,cx,cy,r); g.addColorStop(0,'#888'); g.addColorStop(1,'#222'); ctx.fillStyle=g; ctx.fillRect(cx-r,cy-r,r*2,r*2); }
+  }
+  // Блик
+  const gl=ctx.createRadialGradient(cx-r*.3,cy-r*.3,r*.05,cx-r*.1,cy-r*.1,r*.75);
+  gl.addColorStop(0,'rgba(255,255,255,.22)'); gl.addColorStop(.4,'rgba(255,255,255,.05)'); gl.addColorStop(1,'rgba(0,0,0,.3)');
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function _sun(c,cx,cy,r){
+  const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);
+  g.addColorStop(0,'#fff7c0'); g.addColorStop(.3,'#fde68a'); g.addColorStop(.65,'#f97316'); g.addColorStop(1,'#c2410c');
+  c.fillStyle=g; c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.fill();
+  for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2,x=cx+Math.cos(a)*r*.55,y=cy+Math.sin(a)*r*.55,sg=c.createRadialGradient(x,y,0,x,y,r*.28);sg.addColorStop(0,'rgba(253,186,116,.4)');sg.addColorStop(1,'transparent');c.fillStyle=sg;c.beginPath();c.arc(x,y,r*.28,0,Math.PI*2);c.fill();}
+}
+function _mercury(c,cx,cy,r){
+  const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);
+  g.addColorStop(0,'#c0bdb8');g.addColorStop(.5,'#8c8880');g.addColorStop(1,'#4a4845');
+  c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();
+  [[.2,.1,.2],[-.3,.2,.15],[0,-.3,.12],[.35,-.1,.1],[-.15,.35,.08]].forEach(([dx,dy,rs])=>{
+    c.beginPath();c.arc(cx+dx*r,cy+dy*r,rs*r,0,Math.PI*2);c.fillStyle='rgba(0,0,0,.25)';c.fill();
+  });
+}
+function _venus(c,cx,cy,r){
+  const g=c.createRadialGradient(cx,cy,0,cx,cy,r);
+  g.addColorStop(0,'#fef9c3');g.addColorStop(.5,'#fde68a');g.addColorStop(1,'#ca8a04');
+  c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();
+  for(let i=0;i<5;i++){const y=cy-r+(i+.5)*(r*2/5),hw=Math.sqrt(Math.max(0,r*r-(y-cy)*(y-cy)));c.beginPath();c.ellipse(cx,y,hw*.9,r*.06,0,0,Math.PI*2);c.fillStyle=i%2?'rgba(180,120,0,.1)':'rgba(255,255,255,.12)';c.fill();}
+}
+function _earth(c,cx,cy,r){
+  const oc=c.createRadialGradient(cx,cy,0,cx,cy,r);
+  oc.addColorStop(0,'#60a5fa');oc.addColorStop(.6,'#2563eb');oc.addColorStop(1,'#1e3a8a');
+  c.fillStyle=oc;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();
+  [[cx-r*.15,cy-r*.05,r*.28,r*.38],[cx-r*.5,cy+r*.05,r*.2,r*.28],[cx+r*.2,cy+r*.25,r*.2,r*.22],[cx+r*.35,cy+r*.4,r*.12,r*.12]].forEach(([x,y,rw,rh])=>{
+    c.beginPath();c.ellipse(x,y,rw,rh,.3,0,Math.PI*2);c.fillStyle='#16a34a';c.fill();
+  });
+  c.beginPath();c.ellipse(cx,cy-r*.88,r*.45,r*.16,0,0,Math.PI*2);c.fillStyle='rgba(255,255,255,.85)';c.fill();
+  c.beginPath();c.ellipse(cx,cy+r*.9,r*.3,r*.1,0,0,Math.PI*2);c.fillStyle='rgba(255,255,255,.7)';c.fill();
+}
+function _mars(c,cx,cy,r){
+  const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);
+  g.addColorStop(0,'#fca5a5');g.addColorStop(.4,'#ef4444');g.addColorStop(1,'#7f1d1d');
+  c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();
+  c.beginPath();c.ellipse(cx+r*.15,cy+r*.1,r*.35,r*.2,.3,0,Math.PI*2);c.fillStyle='rgba(100,20,10,.3)';c.fill();
+  c.beginPath();c.ellipse(cx,cy-r*.82,r*.32,r*.12,0,0,Math.PI*2);c.fillStyle='rgba(255,255,255,.7)';c.fill();
+}
+function _jupiter(c,cx,cy,r){
+  const g=c.createLinearGradient(cx,cy-r,cx,cy+r);
+  g.addColorStop(0,'#c8a06e');g.addColorStop(.5,'#e8c88a');g.addColorStop(1,'#a0704a');
+  c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();
+  [[.1,'rgba(160,90,50,.5)',.12],[.3,'rgba(255,230,180,.4)',.08],[.5,'rgba(140,70,40,.55)',.14],[.7,'rgba(210,180,130,.35)',.09],[.85,'rgba(120,60,30,.45)',.1],[-.25,'rgba(180,100,50,.4)',.11]].forEach(([ry,col,rh])=>{
+    const y=cy+ry*r,hw=Math.sqrt(Math.max(0,r*r-(y-cy)*(y-cy)));
+    c.beginPath();c.ellipse(cx,y,hw,rh*r,0,0,Math.PI*2);c.fillStyle=col;c.fill();
+  });
+  c.beginPath();c.ellipse(cx+r*.15,cy+r*.12,r*.2,r*.12,.2,0,Math.PI*2);c.fillStyle='rgba(200,60,40,.65)';c.fill();
+}
+function _saturn(c,cx,cy,r){
+  const g=c.createRadialGradient(cx,cy,0,cx,cy,r);
+  g.addColorStop(0,'#f5e6b0');g.addColorStop(.5,'#d4a848');g.addColorStop(1,'#8b5e1c');
+  c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();
+  [[.2,'rgba(200,160,80,.35)',.1],[.45,'rgba(255,225,150,.3)',.08],[.65,'rgba(180,130,60,.4)',.1]].forEach(([ry,col,rh])=>{
+    const y=cy+ry*r,hw=Math.sqrt(Math.max(0,r*r-(y-cy)*(y-cy)));
+    c.beginPath();c.ellipse(cx,y,hw,rh*r,0,0,Math.PI*2);c.fillStyle=col;c.fill();
+  });
+}
+function _uranus(c,cx,cy,r){
+  const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);
+  g.addColorStop(0,'#a5f3fc');g.addColorStop(.5,'#22d3ee');g.addColorStop(1,'#0e7490');
+  c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();
+}
+function _neptune(c,cx,cy,r){
+  const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);
+  g.addColorStop(0,'#93c5fd');g.addColorStop(.4,'#3b82f6');g.addColorStop(1,'#1e3a8a');
+  c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();
+  c.beginPath();c.ellipse(cx-r*.2,cy+r*.1,r*.22,r*.14,-.3,0,Math.PI*2);c.fillStyle='rgba(30,58,138,.6)';c.fill();
+  c.beginPath();c.ellipse(cx+r*.1,cy-r*.25,r*.12,r*.07,.4,0,Math.PI*2);c.fillStyle='rgba(255,255,255,.25)';c.fill();
+}
+function _pluto(c,cx,cy,r){
+  const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);
+  g.addColorStop(0,'#fde68a');g.addColorStop(.4,'#d4a85a');g.addColorStop(1,'#78350f');
+  c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();
+  c.beginPath();c.ellipse(cx+r*.05,cy+r*.1,r*.38,r*.32,.2,0,Math.PI*2);c.fillStyle='rgba(254,243,199,.55)';c.fill();
+}
+function drawSaturnRings(ctx,cx,cy,r){
+  // Вид сверху: кольца почти круглые (лёгкое эллиптическое сжатие для объёма)
+  for(let i=0;i<3;i++){const rx=r*(1.5+i*.3),ry=rx*.55,alpha=[.5,.32,.18][i];ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.strokeStyle=`rgba(240,210,130,${alpha})`;ctx.lineWidth=r*(.18-i*.03);ctx.stroke();}
+}
+
+// ════════════════════════════════════════════
+//  CANVAS 3D DEMO
+// ════════════════════════════════════════════
+const canvas = document.getElementById('solarCanvas');
+const SIZE = Math.min(window.innerWidth - 16, window.innerHeight - 300, 310);
+canvas.width = SIZE; canvas.height = SIZE;
+const ctx = canvas.getContext('2d');
+const CX = SIZE/2, CY = SIZE/2;
+// SC_dist: масштаб орбит — Плутон (dist=328) должен помещаться в SIZE/2
+// SIZE*0.44/328 гарантирует что max_x = CX + dist_pluto < SIZE
+const SC_dist = (SIZE * 0.44) / 328;
+// SC_r: масштаб размеров планет — независимый от орбит
+const SC_r = SIZE / 400;
+const planets = PLANETS.map(p=>({...p, r:Math.max(3,Math.round(p.r*SC_r)), dist:Math.round(p.dist*SC_dist)}));
+let angles = planets.map(()=>Math.random()*Math.PI*2);
+let paused=false, showOrbits=true, speedMult=1, speedIdx=0, selected=0;
+const speedVals=[1,2,5], speedLabels=['1×','2×','5×'];
+
+// Чипы
+const chipsEl = document.getElementById('chips');
+planets.forEach((p,i)=>{
+  const el=document.createElement('div'); el.className='p-chip'+(i===0?' sel':'');
+  const dc=document.createElement('canvas'); dc.className='p-chip-dot'; dc.width=26; dc.height=26;
+  drawPlanet(dc.getContext('2d'),13,13,12,p.type); el.appendChild(dc);
+  const nm=document.createElement('div'); nm.className='p-chip-name'; nm.textContent=p.name; el.appendChild(nm);
+  el.onclick=()=>selectPlanet(i); chipsEl.appendChild(el);
+});
+
+function selectPlanet(i){
+  selected=i; const p=planets[i];
+  const bc=document.getElementById('infoBall'), bctx=bc.getContext('2d');
+  bctx.clearRect(0,0,26,26); drawPlanet(bctx,13,13,12,p.type);
+  document.getElementById('infoName').textContent=p.name;
+  document.getElementById('infoFact').textContent=p.fact;
+  document.querySelectorAll('.p-chip').forEach((c,idx)=>c.classList.toggle('sel',idx===i));
+}
+selectPlanet(0);
+
+canvas.addEventListener('click',e=>{
+  const rect=canvas.getBoundingClientRect(),mx=(e.clientX-rect.left)*(SIZE/rect.width),my=(e.clientY-rect.top)*(SIZE/rect.height);
+  for(let i=planets.length-1;i>=0;i--){const p=planets[i],px=i===0?CX:CX+Math.cos(angles[i])*p.dist,py=i===0?CY:CY+Math.sin(angles[i])*p.dist;if((mx-px)**2+(my-py)**2<Math.max(p.r+10,18)**2){selectPlanet(i);return;}}
+});
+
+function drawFrame(){
+  ctx.clearRect(0,0,SIZE,SIZE);
+  // Фон
+  const bg=ctx.createRadialGradient(CX,CY,0,CX,CY,SIZE*.7);
+  bg.addColorStop(0,'#0a0c22');bg.addColorStop(1,'#060818');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,SIZE,SIZE);
+  // Звёзды
+  [[.1,.08],[.22,.35],[.5,.06],[.72,.11],[.88,.22],[.15,.55],[.6,.48],[.85,.6],[.35,.8],[.07,.75],[.95,.82],[.45,.92],[.78,.88]].forEach(([fx,fy])=>{ctx.beginPath();ctx.arc(fx*SIZE,fy*SIZE,.8,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${.4+Math.random()*.3})`;ctx.fill();});
+  // Орбиты — вид сверху, круговые
+  if(showOrbits){planets.forEach((p,i)=>{if(i===0)return;ctx.beginPath();ctx.arc(CX,CY,p.dist,0,Math.PI*2);ctx.strokeStyle=selected===i?'rgba(167,139,250,.25)':'rgba(255,255,255,.07)';ctx.lineWidth=1;ctx.setLineDash([4,6]);ctx.stroke();ctx.setLineDash([]);});}
+  // Вид сверху: py без сжатия 0.4
+  const pos=(p,i)=>({px:i===0?CX:CX+Math.cos(angles[i])*p.dist, py:i===0?CY:CY+Math.sin(angles[i])*p.dist});
+  // Кольца Сатурна рисуем ДО тела планеты (вид сверху — всё видно)
+  const si=planets.findIndex(p=>p.id==='saturn');
+  if(si>=0){const sp=planets[si],{px:sx,py:sy}=pos(sp,si);drawSaturnRings(ctx,sx,sy,sp.r);}
+  // Планеты
+  planets.forEach((p,i)=>{
+    const {px,py}=pos(p,i);
+    if(i===0){const sg=ctx.createRadialGradient(px,py,p.r,px,py,p.r*3);sg.addColorStop(0,'rgba(249,115,22,.3)');sg.addColorStop(1,'transparent');ctx.fillStyle=sg;ctx.beginPath();ctx.arc(px,py,p.r*3,0,Math.PI*2);ctx.fill();}
+    if(selected===i){ctx.beginPath();ctx.arc(px,py,p.r+6,0,Math.PI*2);ctx.strokeStyle='rgba(167,139,250,.5)';ctx.lineWidth=1.5;ctx.stroke();}
+    drawPlanet(ctx,px,py,p.r,p.type);
+  });
+  if(!paused) planets.forEach((p,i)=>{if(i>0)angles[i]+=(p.spd/600)*speedMult;});
+  requestAnimationFrame(drawFrame);
+}
+drawFrame();
+
+function togglePause(){paused=!paused;const b=document.getElementById('btnPause');b.textContent=paused?'▶ Играть':'⏸ Пауза';b.classList.toggle('on',paused);}
+function toggleOrbits(){showOrbits=!showOrbits;const b=document.getElementById('btnOrbits');b.classList.toggle('on',showOrbits);b.textContent=showOrbits?'⬤ Орбиты':'○ Орбиты';}
+function cycleSpeed(){speedIdx=(speedIdx+1)%speedVals.length;speedMult=speedVals[speedIdx];document.getElementById('btnSpeed').textContent='⚡ '+speedLabels[speedIdx];}
+
+// ════════════════════════════════════════════
+//  AR — WebXR Hit Test (пол/поверхность) + fallback (getUserMedia)
+// ════════════════════════════════════════════
+// arState: 'idle' | 'loading' | 'scanning' | 'surface-found' | 'ready'
+let arState = 'idle';
+// ── Вращение / масштаб / тач ──
+let arRotX = 0, arRotY = 0, arScale = 1.0;
+let arTouchX = 0, arTouchY = 0, arMouseDown = false;
+let arLastTouch = 0, arAutoTimer = null;
+let arPinchDist0 = 0, arScale0 = 1.0;
+// ── A-Frame (getUserMedia) ──
+let arScene = null, arSolarEl = null, arStream = null, arCamVideo = null;
+let arPlaceListener = null;   // ссылка на обработчик тапа для удаления
+
+function loadScript(src, cb, err) {
+  if (document.querySelector(`script[src="${src}"]`)) { cb(); return; }
+  const s = document.createElement('script');
+  s.src = src; s.onload = cb; s.onerror = err;
+  document.head.appendChild(s);
+}
+function _setSolarRot(rx, ry) {
+  if (arSolarEl) arSolarEl.setAttribute('rotation', `${rx} ${ry} 0`);
+}
+function _setSolarScale(s) {
+  if (arSolarEl) arSolarEl.setAttribute('scale', `${s} ${s} ${s}`);
+}
+function _btnDone() {
+  const b = document.getElementById('btn-start-ar');
+  b.textContent = '📡 Запустить AR'; b.style.opacity = '1';
+}
+
+// ════ ЗАПУСК ════════════════════════════════
+async function startAR() {
+  if (arState !== 'idle') return;
+  arState = 'loading';
+  const btn = document.getElementById('btn-start-ar');
+  btn.textContent = '⏳ Запуск…'; btn.style.opacity = '0.7';
+
+  // iOS 13+ требует явного разрешения на гироскоп — запрашиваем здесь,
+  // пока есть пользовательский жест (нажатие кнопки)
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try { await DeviceOrientationEvent.requestPermission(); } catch(e) {}
+  }
+
+  startFallbackAR();
+}
+
+// ════ getUserMedia + A-Frame ═════════════════
+function startFallbackAR() {
+  const btn = document.getElementById('btn-start-ar');
+  btn.textContent = '⏳ Камера…';
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} },
+    audio: false
+  }).then(stream => {
+    arStream = stream;
+    arCamVideo = document.createElement('video');
+    arCamVideo.srcObject = stream; arCamVideo.autoplay = true;
+    arCamVideo.muted = true; arCamVideo.playsInline = true;
+    arCamVideo.setAttribute('playsinline', '');
+    document.getElementById('ar-active').appendChild(arCamVideo);
+    arCamVideo.play().catch(() => {});
+    showARView(); btn.textContent = '⏳ Загрузка 3D…';
+    if (window.AFRAME) injectARScene();
+    else loadScript('https://aframe.io/releases/1.3.0/aframe.min.js', injectARScene, arError);
+  }).catch(() => {
+    arState = 'idle'; btn.textContent = '⚠️ Нет доступа к камере'; btn.style.opacity = '1';
+    setTimeout(() => { btn.textContent = '📡 Запустить AR'; }, 3000);
+  });
+}
+
+// ── A-Frame сцена (fallback) ─────────────────
+function buildARScene() {
+  const C = {sun:'#f9a23c',mercury:'#b0aaa4',venus:'#e8c47a',earth:'#3b82f6',
+             mars:'#e0533b',jupiter:'#d9913f',saturn:'#d8b863',uranus:'#6fdfe8',
+             neptune:'#3b6fd4',pluto:'#cdab78'};
+  const P = [
+    ['mercury',1.0 ,0.09 ,4000 ],
+    ['venus'  ,1.45,0.12 ,7000 ],
+    ['earth'  ,1.95,0.14 ,9000 ],
+    ['mars'   ,2.5 ,0.10 ,13000],
+    ['jupiter',3.2 ,0.28 ,20000],
+    ['saturn' ,3.95,0.22 ,28000],
+    ['uranus' ,4.55,0.17 ,38000],
+    ['neptune',5.1 ,0.155,48000],
+    ['pluto'  ,5.55,0.07 ,60000]
+  ];
+
+  // Солнце: светится само по себе (emissive) + является точечным источником
+  let inner = `
+    <a-sphere radius="0.52" position="0 0 0"
+      material="color:${C.sun};emissive:${C.sun};emissiveIntensity:1;roughness:1;metalness:0"
+      animation="property:rotation;to:0 360 0;dur:20000;loop:true;easing:linear"></a-sphere>
+    <a-light type="point" color="#ffe0a0" intensity="2.2" position="0 0 0" distance="22" decay="1.6"></a-light>`;
+
+  P.forEach(([id,oR,pR,dur]) => {
+    // Орбитальное кольцо (плоское, shader:flat)
+    inner += `
+    <a-torus radius="${oR}" radius-tubular="0.007" rotation="90 0 0"
+      material="color:#8899cc;opacity:0.22;transparent:true;shader:flat"></a-torus>
+    <a-entity animation="property:rotation;to:0 360 0;dur:${dur};loop:true;easing:linear">
+      <a-sphere radius="${pR}" position="${oR} 0 0"
+        material="color:${C[id]};roughness:0.78;metalness:0.04;emissive:${C[id]};emissiveIntensity:0.07"></a-sphere>`;
+    if (id === 'saturn') {
+      inner += `
+      <a-torus position="${oR} 0 0" radius="${(pR*2.0).toFixed(3)}" radius-tubular="${(pR*0.45).toFixed(3)}"
+        rotation="72 0 0" material="color:#e8c878;opacity:0.8;transparent:true;shader:flat"></a-torus>`;
+    }
+    inner += `\n    </a-entity>`;
+  });
+
+  return `
+  <a-scene embedded vr-mode-ui="enabled:false"
+    renderer="antialias:true;alpha:true;"
+    background="transparent:true">
+    <a-light type="ambient" color="#202848" intensity="1.2"></a-light>
+    <a-entity id="ar-solar" position="0 -1.5 -3.5" rotation="80 0 0" scale="0.4 0.4 0.4" visible="false">
+      ${inner}
+    </a-entity>
+    <!-- magicWindowTrackingEnabled: гироскоп для обычного (не VR) режима     -->
+    <!-- touchEnabled:false: тач-свайпы не вращают камеру — они идут на модель -->
+    <a-camera fov="60"
+      look-controls="magicWindowTrackingEnabled:true;touchEnabled:false;hmdEnabled:false"
+      wasd-controls="enabled:false"
+      position="0 0 0">
+    </a-camera>
+  </a-scene>`;
+}
+
+function injectARScene() {
+  const host = document.getElementById('ar-active');
+  const wrap = document.createElement('div');
+  wrap.innerHTML = buildARScene().trim();
+  host.appendChild(wrap.firstElementChild);
+  arScene = host.querySelector('a-scene');
+
+  const onLoaded = () => {
+    _btnDone();
+    arSolarEl = document.getElementById('ar-solar');
+
+    // ── Шаг 1: показываем сканирующее кольцо ──
+    arState = 'scanning';
+    const scanEl = document.getElementById('ar-scan');
+    scanEl.classList.add('on');
+    setARStatus('Сканирование поверхности…', false);
+    document.getElementById('ar-hint').textContent = '🔍 Наводи на пол…';
+
+    // ── Шаг 2: через ~1.5с «поверхность найдена» ──
+    setTimeout(() => {
+      if (arState !== 'scanning') return;   // user may have exited
+      arState = 'surface-found';
+      scanEl.classList.add('scan-found');   // кольца зеленеют
+      setARStatus('Поверхность найдена · тапни ✓', true);
+      document.getElementById('ar-hint').textContent = '👆 Тапни чтобы поставить';
+
+      // ── Шаг 3: ждём тап ──
+      arPlaceListener = () => _placeModel();
+      host.addEventListener('click', arPlaceListener, { once: true });
+    }, 1500);
+  };
+
+  if (arScene.hasLoaded) onLoaded(); else arScene.addEventListener('loaded', onLoaded);
+}
+
+// Размещаем модель на «полу» после тапа
+function _placeModel() {
+  if (arState !== 'surface-found') return;
+  arState = 'ready';
+
+  // Убираем сканирующее кольцо
+  const scanEl = document.getElementById('ar-scan');
+  scanEl.classList.remove('on', 'scan-found');
+
+  // Ставим солнечную систему «на пол»:
+  // rotation 80° по X → орбитальная плоскость почти горизонтальная (лежит на полу)
+  arRotX = 80; arRotY = 0; arScale = 0.4;
+  arSolarEl.setAttribute('position', '0 -1.5 -3.5');
+  arSolarEl.setAttribute('rotation', `${arRotX} ${arRotY} 0`);
+  arSolarEl.setAttribute('scale', `${arScale} ${arScale} ${arScale}`);
+  arSolarEl.setAttribute('visible', 'true');
+
+  setARStatus('AR · вращай пальцем', true);
+  document.getElementById('ar-hint').textContent = 'Вращай пальцем 🌌';
+  setupARControls();
+  startARAutoRotate();
+}
+
+// ── Управление (единое для WebXR и A-Frame) ──
+function setupARControls() {
+  const host = document.getElementById('ar-active');
+  host.addEventListener('touchstart', e => {
+    arLastTouch = Date.now();
+    if (e.touches.length === 1) { arTouchX = e.touches[0].clientX; arTouchY = e.touches[0].clientY; }
+    else if (e.touches.length === 2) {
+      arPinchDist0 = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      arScale0 = arScale;
+    }
+  }, { passive: true });
+  host.addEventListener('touchmove', e => {
+    e.preventDefault(); arLastTouch = Date.now();
+    if (e.touches.length === 1) {
+      const dx = e.touches[0].clientX - arTouchX, dy = e.touches[0].clientY - arTouchY;
+      arRotY += dx * 0.45; arRotX = Math.max(-90, Math.min(90, arRotX + dy * 0.3));
+      _setSolarRot(arRotX, arRotY);
+      arTouchX = e.touches[0].clientX; arTouchY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      arScale = Math.max(0.2, Math.min(3.0, arScale0 * (d / arPinchDist0)));
+      _setSolarScale(arScale);
+    }
+  }, { passive: false });
+  host.addEventListener('touchend', () => { arLastTouch = Date.now(); }, { passive: true });
+  host.addEventListener('mousedown', e => { arMouseDown=true; arLastTouch=Date.now(); arTouchX=e.clientX; arTouchY=e.clientY; });
+  window.addEventListener('mousemove', e => {
+    if (!arMouseDown) return; arLastTouch = Date.now();
+    arRotY += (e.clientX-arTouchX)*0.4; arRotX = Math.max(-90,Math.min(90,arRotX+(e.clientY-arTouchY)*0.25));
+    _setSolarRot(arRotX, arRotY); arTouchX=e.clientX; arTouchY=e.clientY;
+  });
+  window.addEventListener('mouseup', () => { arMouseDown = false; });
+  host.addEventListener('wheel', e => {
+    e.preventDefault();
+    arScale = Math.max(0.2, Math.min(3.0, arScale - e.deltaY*0.001));
+    _setSolarScale(arScale);
+  }, { passive: false });
+}
+
+function startARAutoRotate() {
+  clearInterval(arAutoTimer);
+  arAutoTimer = setInterval(() => {
+    if (Date.now() - arLastTouch > 2000) { arRotY += 0.15; _setSolarRot(arRotX, arRotY); }
+  }, 33);
+}
+
+function setARStatus(text, active) {
+  const s = document.getElementById('ar-status'); if (s) s.textContent = text;
+  const l = document.getElementById('ar-live'); if (l) l.style.background = active ? '#34d399' : 'rgba(255,255,255,0.5)';
+}
+function arError() {
+  arState = 'idle';
+  const btn = document.getElementById('btn-start-ar');
+  btn.textContent = '⚠️ Ошибка — попробуй снова'; btn.style.opacity = '1';
+  document.getElementById('ar-active').classList.remove('on');
+  document.getElementById('ar-overlay').style.display = 'none';
+  document.getElementById('ar-launch').style.display = 'flex';
+  setTimeout(() => { btn.textContent = '📡 Запустить AR'; }, 3000);
+}
+function showARView() {
+  document.getElementById('ar-launch').style.display = 'none';
+  document.getElementById('ar-active').classList.add('on');
+  document.getElementById('ar-overlay').style.display = 'block';
+}
+function stopAR() {
+  if (arState === 'idle') return;
+  arState = 'idle';
+  clearInterval(arAutoTimer); arAutoTimer = null; arMouseDown = false;
+
+  // Убираем сканирующее кольцо
+  const scanEl = document.getElementById('ar-scan');
+  if (scanEl) scanEl.classList.remove('on', 'scan-found');
+
+  // Снимаем обработчик тапа (если ещё не сработал)
+  if (arPlaceListener) {
+    document.getElementById('ar-active').removeEventListener('click', arPlaceListener);
+    arPlaceListener = null;
+  }
+
+  // Останавливаем камеру
+  if (arStream) { arStream.getTracks().forEach(t => t.stop()); arStream = null; }
+  if (arCamVideo) { arCamVideo.pause(); arCamVideo.srcObject = null; arCamVideo.remove(); arCamVideo = null; }
+
+  // Удаляем A-Frame сцену
+  if (arScene) { try { arScene.parentNode?.removeChild(arScene); } catch(e) {} arScene = null; }
+  arSolarEl = null;
+
+  document.getElementById('ar-active').classList.remove('on');
+  document.getElementById('ar-overlay').style.display = 'none';
+  document.getElementById('ar-launch').style.display = 'flex';
+}
+
+// ════════════════════════════════════════════
+//  ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+// ════════════════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(name+'-panel').classList.add('active');
+  btn.classList.add('active');
+  // Уходим с вкладки AR — гасим камеру (иначе видео останется поверх экрана)
+  if (name !== 'ar' && arState !== 'idle') stopAR();
+}
+</script>
+</body>
+</html>
