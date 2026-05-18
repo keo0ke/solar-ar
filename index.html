@@ -142,6 +142,32 @@
       pointer-events:none; opacity:0; transition:opacity 0.4s;
     }
 
+    /* ── AR попап планеты ── */
+    #ar-popup {
+      position:absolute; bottom:70px; left:12px; right:12px;
+      background:rgba(6,8,24,0.93); border:1px solid rgba(167,139,250,0.4);
+      border-radius:20px; padding:16px 16px 18px;
+      backdrop-filter:blur(16px); display:none; pointer-events:auto;
+      animation:popupIn 0.22s ease;
+    }
+    #ar-popup.show { display:block; }
+    @keyframes popupIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    .ar-pp-head { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+    #ar-pp-ball { border-radius:50%; flex-shrink:0; }
+    .ar-pp-title { font-size:18px; font-weight:700; }
+    .ar-pp-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+    .ar-pp-close {
+      margin-left:auto; width:28px; height:28px; border-radius:50%;
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.13);
+      display:flex; align-items:center; justify-content:center;
+      font-size:13px; cursor:pointer; flex-shrink:0; color:#fff;
+    }
+    .ar-pp-fact { font-size:12px; color:rgba(255,255,255,0.78); line-height:1.55; margin-bottom:12px; }
+    .ar-pp-stats { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .ar-pp-stat { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:7px 10px; }
+    .ar-pp-stat-k { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:2px; }
+    .ar-pp-stat-v { font-size:12px; font-weight:600; }
+
     /* AR — сканирующий ретикул (имитация поиска поверхности) */
     #ar-scan {
       display:none; position:absolute;
@@ -257,6 +283,21 @@
     <div class="ar-corner ar-tl"></div><div class="ar-corner ar-tr"></div>
     <div class="ar-corner ar-bl"></div><div class="ar-corner ar-br"></div>
     <div id="ar-hint">Вращай пальцем 🌌</div>
+
+    <!-- Попап информации о планете -->
+    <div id="ar-popup">
+      <div class="ar-pp-head">
+        <canvas id="ar-pp-ball" width="44" height="44"></canvas>
+        <div>
+          <div class="ar-pp-title" id="ar-pp-name"></div>
+          <div class="ar-pp-sub" id="ar-pp-sub"></div>
+        </div>
+        <div class="ar-pp-close" onclick="closeARPopup()">✕</div>
+      </div>
+      <div class="ar-pp-fact" id="ar-pp-fact"></div>
+      <div class="ar-pp-stats" id="ar-pp-stats"></div>
+    </div>
+
     <!-- Сканирующий ретикул — симуляция поиска поверхности -->
     <div id="ar-scan">
       <div class="scan-ring"></div>
@@ -610,7 +651,7 @@ function buildARScene() {
 
   // Солнце: светится само по себе (emissive) + является точечным источником
   let inner = `
-    <a-sphere radius="0.52" position="0 0 0"
+    <a-sphere radius="0.52" position="0 0 0" class="clickable" data-planet-id="sun"
       material="color:${C.sun};emissive:${C.sun};emissiveIntensity:1;roughness:1;metalness:0"
       animation="property:rotation;to:0 360 0;dur:20000;loop:true;easing:linear"></a-sphere>
     <a-light type="point" color="#ffe0a0" intensity="2.2" position="0 0 0" distance="22" decay="1.6"></a-light>`;
@@ -621,7 +662,7 @@ function buildARScene() {
     <a-torus radius="${oR}" radius-tubular="0.007" rotation="90 0 0"
       material="color:#8899cc;opacity:0.22;transparent:true;shader:flat"></a-torus>
     <a-entity animation="property:rotation;to:0 360 0;dur:${dur};loop:true;easing:linear">
-      <a-sphere radius="${pR}" position="${oR} 0 0"
+      <a-sphere radius="${pR}" position="${oR} 0 0" class="clickable" data-planet-id="${id}"
         material="color:${C[id]};roughness:0.78;metalness:0.04;emissive:${C[id]};emissiveIntensity:0.07"></a-sphere>`;
     if (id === 'saturn') {
       inner += `
@@ -639,6 +680,8 @@ function buildARScene() {
     <a-entity id="ar-solar" position="0 -1.5 -3.5" rotation="80 0 0" scale="0.4 0.4 0.4" visible="false">
       ${inner}
     </a-entity>
+    <!-- Курсор: rayOrigin:mouse = луч идёт через точку касания, не из центра -->
+    <a-entity cursor="rayOrigin:mouse" raycaster="objects:.clickable;far:30"></a-entity>
     <!-- magicWindowTrackingEnabled: гироскоп для обычного (не VR) режима     -->
     <!-- touchEnabled:false: тач-свайпы не вращают камеру — они идут на модель -->
     <a-camera fov="60"
@@ -659,6 +702,14 @@ function injectARScene() {
   const onLoaded = () => {
     _btnDone();
     arSolarEl = document.getElementById('ar-solar');
+
+    // Клик по планете → попап (срабатывает только когда модель размещена)
+    arScene.querySelectorAll('[data-planet-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        if (arState !== 'ready') return;
+        showARPlanetPopup(el.getAttribute('data-planet-id'));
+      });
+    });
 
     // ── Шаг 1: показываем сканирующее кольцо ──
     arState = 'scanning';
@@ -753,6 +804,27 @@ function startARAutoRotate() {
   }, 33);
 }
 
+function showARPlanetPopup(id) {
+  const p = PLANETS.find(pl => pl.id === id);
+  if (!p) return;
+  // Рисуем шарик планеты
+  const bc = document.getElementById('ar-pp-ball');
+  const bctx = bc.getContext('2d');
+  bctx.clearRect(0, 0, 44, 44);
+  drawPlanet(bctx, 22, 22, 20, p.type);
+  document.getElementById('ar-pp-name').textContent = p.name;
+  document.getElementById('ar-pp-sub').textContent = p.sub;
+  document.getElementById('ar-pp-fact').textContent = p.fact;
+  document.getElementById('ar-pp-stats').innerHTML =
+    p.stats.map(([k,v]) =>
+      `<div class="ar-pp-stat"><div class="ar-pp-stat-k">${k}</div><div class="ar-pp-stat-v">${v}</div></div>`
+    ).join('');
+  document.getElementById('ar-popup').classList.add('show');
+}
+function closeARPopup() {
+  document.getElementById('ar-popup').classList.remove('show');
+}
+
 function setARStatus(text, active) {
   const s = document.getElementById('ar-status'); if (s) s.textContent = text;
   const l = document.getElementById('ar-live'); if (l) l.style.background = active ? '#34d399' : 'rgba(255,255,255,0.5)';
@@ -776,7 +848,8 @@ function stopAR() {
   arState = 'idle';
   clearInterval(arAutoTimer); arAutoTimer = null; arMouseDown = false;
 
-  // Убираем сканирующее кольцо
+  // Закрываем попап и сканирующее кольцо
+  closeARPopup();
   const scanEl = document.getElementById('ar-scan');
   if (scanEl) scanEl.classList.remove('on', 'scan-found');
 
