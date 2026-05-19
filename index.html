@@ -142,8 +142,8 @@
     <button id="btn-start-ar" onclick="startAR()">📡 Запустить AR</button>
     <div class="launch-steps">
       <div class="launch-step"><div class="step-n">1</div><div><div class="step-h">Разреши камеру</div><div class="step-t">Нажми кнопку и подтверди доступ к камере</div></div></div>
-      <div class="launch-step"><div class="step-n">2</div><div><div class="step-h">Наведи на пол</div><div class="step-t">Кольцо просканирует поверхность и позеленеет</div></div></div>
-      <div class="launch-step"><div class="step-n">3</div><div><div class="step-h">Тапни чтобы поставить</div><div class="step-t">Свайп — вращение, щипок — масштаб, тап на планету — инфо</div></div></div>
+      <div class="launch-step"><div class="step-n">2</div><div><div class="step-h">Модель появится сразу</div><div class="step-t">Солнечная система возникнет в пространстве перед тобой</div></div></div>
+      <div class="launch-step"><div class="step-n">3</div><div><div class="step-h">Управляй жестами</div><div class="step-t">Свайп — вращение, щипок — масштаб, тап на планету — инфо</div></div></div>
     </div>
   </div>
 
@@ -221,7 +221,7 @@ function _neptune(c,cx,cy,r){const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1
 function _pluto(c,cx,cy,r){const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);g.addColorStop(0,'#fde68a');g.addColorStop(.4,'#d4a85a');g.addColorStop(1,'#78350f');c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();c.beginPath();c.ellipse(cx+r*.05,cy+r*.1,r*.38,r*.32,.2,0,Math.PI*2);c.fillStyle='rgba(254,243,199,.55)';c.fill();}
 
 // ── AR STATE ─────────────────────────────────
-let arState='idle'; // idle | loading | scanning | surface-found | ready
+let arState='idle'; // idle | loading | ready
 let arRotX=0, arRotY=0, arScale=1, arTouchX=0, arTouchY=0, arMouseDown=false;
 let arLastTouch=0, arAutoTimer=null, arPinchDist0=0, arScale0=1;
 let arScene=null, arSolarEl=null, arStream=null, arCamVideo=null, arPlaceListener=null;
@@ -336,26 +336,13 @@ function injectARScene() {
     arScene.querySelectorAll('[data-planet-id]').forEach(el =>
       el.addEventListener('click', () => { if(arState==='ready') showARPopup(el.getAttribute('data-planet-id')); })
     );
-    // Сканирование
-    arState='scanning';
-    document.getElementById('ar-scan').classList.add('on');
-    setARStatus('Сканирование поверхности…', false);
-    document.getElementById('ar-hint').textContent='🔍 Наводи на пол…';
-    setTimeout(() => {
-      if(arState !== 'scanning') return;
-      arState='surface-found';
-      document.getElementById('ar-scan').classList.add('scan-found');
-      setARStatus('Поверхность найдена · тапни ✓', true);
-      document.getElementById('ar-hint').textContent='👆 Тапни чтобы поставить';
-      arPlaceListener = () => placeModel();
-      host.addEventListener('click', arPlaceListener, { once:true });
-    }, 1500);
+    placeModel();
   };
   if(arScene.hasLoaded) onLoaded(); else arScene.addEventListener('loaded', onLoaded);
 }
 
 function placeModel() {
-  if(arState !== 'surface-found') return;
+  if(arState === 'ready') return;
   arState='ready';
   document.getElementById('ar-scan').classList.remove('on','scan-found');
   arRotX=80; arRotY=0; arScale=0.4;
