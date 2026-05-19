@@ -129,9 +129,9 @@
     <div class="ar-launch-sub">Солнечная система на твоём полу —<br>без маркеров, без приложений</div>
     <button id="btn-start-ar" onclick="startAR()">📡 Запустить AR</button>
     <div class="launch-steps">
-      <div class="launch-step"><div class="step-n">1</div><div><div class="step-h">Разреши камеру</div><div class="step-t">Нажми кнопку и подтверди доступ к камере</div></div></div>
-      <div class="launch-step"><div class="step-n">2</div><div><div class="step-h">Модель появится сразу</div><div class="step-t">Солнечная система возникнет в пространстве перед тобой</div></div></div>
-      <div class="launch-step"><div class="step-n">3</div><div><div class="step-h">Управляй жестами</div><div class="step-t">Свайп — вращение, щипок — масштаб, тап на планету — инфо</div></div></div>
+      <div class="launch-step"><div class="step-n">1</div><div><div class="step-h">Разреши камеру</div></div></div>
+      <div class="launch-step"><div class="step-n">2</div><div><div class="step-h">Модель появится сразу</div></div></div>
+      <div class="launch-step"><div class="step-n">3</div><div><div class="step-h">Управляй жестами</div></div></div>
     </div>
   </div>
 
@@ -169,10 +169,10 @@
 </div>
 
 <script>
-// ─────────────────────────────────────────────
+
 // ДАННЫЕ ПЛАНЕТ
 // stats: пары [заголовок, значение] для карточки
-// ─────────────────────────────────────────────
+
 const PLANETS = [
   { id:'sun',     name:'Солнце',   type:'sun',     sub:'Звезда G-класса',                   stats:[['Диаметр','1 392 000 км'],['Масса','99.86% системы'],['Темп.','5 500 °C'],['Возраст','4.6 млрд лет']],    fact:'Солнце содержит 99.86% всей массы системы. Свет от него до Земли идёт 8 минут.' },
   { id:'mercury', name:'Меркурий', type:'mercury', sub:'1-я планета · Скалистая',            stats:[['Диаметр','4 879 км'],['Год','88 дней'],['Темп.','-180 / +430°C'],['Спутники','0']],                     fact:'Год на Меркурии длится 88 суток, но сутки — целых 176 дней.' },
@@ -186,12 +186,11 @@ const PLANETS = [
   { id:'pluto',   name:'Плутон',  type:'pluto',   sub:'Карликовая планета · Пояс Койпера',  stats:[['Диаметр','2 376 км'],['Год','248 лет'],['Темп.','-230°C'],['Спутники','5']],                            fact:'На Плутоне есть «Сердце Томба» — светлая равнина в форме сердца размером с Россию.' },
 ];
 
-// ─────────────────────────────────────────────
 // РИСОВАНИЕ ПЛАНЕТ (Canvas 2D)
 // Используется для иконки в попапе.
 // drawPlanet вызывает функцию _<type> для заливки,
 // затем добавляет общий световой блик поверх.
-// ─────────────────────────────────────────────
+
 function drawPlanet(ctx, cx, cy, r, type) {
   ctx.save();
   // Ограничиваем рисование кругом
@@ -215,9 +214,8 @@ function _uranus(c,cx,cy,r){const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,
 function _neptune(c,cx,cy,r){const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);g.addColorStop(0,'#93c5fd');g.addColorStop(.4,'#3b82f6');g.addColorStop(1,'#1e3a8a');c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();c.beginPath();c.ellipse(cx-r*.2,cy+r*.1,r*.22,r*.14,-.3,0,Math.PI*2);c.fillStyle='rgba(30,58,138,.6)';c.fill();c.beginPath();c.ellipse(cx+r*.1,cy-r*.25,r*.12,r*.07,.4,0,Math.PI*2);c.fillStyle='rgba(255,255,255,.25)';c.fill();}
 function _pluto(c,cx,cy,r){const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);g.addColorStop(0,'#fde68a');g.addColorStop(.4,'#d4a85a');g.addColorStop(1,'#78350f');c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();c.beginPath();c.ellipse(cx+r*.05,cy+r*.1,r*.38,r*.32,.2,0,Math.PI*2);c.fillStyle='rgba(254,243,199,.55)';c.fill();}
 
-// ─────────────────────────────────────────────
 // AR-СОСТОЯНИЕ
-// ─────────────────────────────────────────────
+
 let arState = 'idle'; // idle | loading | ready
 
 // Трансформация модели: вращение и масштаб от жестов
@@ -241,9 +239,8 @@ const SPEED_LABELS = ['1×', '2×', '5×'];
 // Формула: 360 / (период_в_мс) * 16
 const ORBIT_SPD = { mercury:1.44, venus:0.823, earth:0.64, mars:0.443, jupiter:0.288, saturn:0.206, uranus:0.152, neptune:0.12, pluto:0.096 };
 
-// ─────────────────────────────────────────────
 // КНОПКИ УПРАВЛЕНИЯ
-// ─────────────────────────────────────────────
+
 function togglePause() {
   arOrbitPaused = !arOrbitPaused;
   const b = document.getElementById('btnPause');
@@ -266,9 +263,8 @@ function cycleSpeed() {
   document.getElementById('btnSpeed').textContent = SPEED_LABELS[arSpeedIdx];
 }
 
-// ─────────────────────────────────────────────
 // ЗАПУСК AR
-// ─────────────────────────────────────────────
+
 async function startAR() {
   if(arState !== 'idle') return;
   arState = 'loading';
@@ -309,7 +305,6 @@ async function startAR() {
     });
 }
 
-// ─────────────────────────────────────────────
 // A-FRAME СЦЕНА
 // buildARScene() возвращает HTML-строку сцены.
 // Ключевые решения:
@@ -319,7 +314,7 @@ async function startAR() {
 //     это даёт точное попадание в планету при тапе
 //   • data-orbit-id на entity групп — для ручного тика вращения
 //   • data-orbit-ring на кольцах — для переключения видимости орбит
-// ─────────────────────────────────────────────
+
 function buildARScene() {
   const C = { sun:'#f9a23c',mercury:'#b0aaa4',venus:'#e8c47a',earth:'#3b82f6',mars:'#e0533b',jupiter:'#d9913f',saturn:'#d8b863',uranus:'#6fdfe8',neptune:'#3b6fd4',pluto:'#cdab78' };
   // [id, радиус орбиты, радиус планеты]
@@ -388,7 +383,7 @@ function placeModel() {
   if(arState === 'ready') return;
   arState = 'ready';
 
-  // Начальная позиция: чуть ниже камеры и перед ней, наклон 80° — модель лежит на «полу»
+  // Начальная позиция: чуть ниже камеры и перед ней, наклон 80°
   arRotX = 80; arRotY = 0; arScale = 0.4;
   arSolarEl.setAttribute('position', '0 -1.5 -3.5');
   arSolarEl.setAttribute('rotation', `${arRotX} ${arRotY} 0`);
@@ -400,6 +395,7 @@ function placeModel() {
   // Ручной тик орбит каждые 16мс (~60fps).
   // A-Frame animation не поддерживает паузу и изменение скорости из JS,
   // поэтому вращаем orbit-entities вручную через arOrbitPaused / arSpeedMult.
+
   arOrbitTimer = setInterval(() => {
     if(arOrbitPaused) return;
     arOrbitEls.forEach(o => {
@@ -419,11 +415,10 @@ function placeModel() {
   setupARControls();
 }
 
-// ─────────────────────────────────────────────
 // ЖЕСТЫ
 // touchmove: passive:false — нужно preventDefault(), чтобы страница не скроллилась
 // Масштаб зажат в диапазоне 0.2–3
-// ─────────────────────────────────────────────
+
 function setupARControls() {
   const host = document.getElementById('ar-active');
 
@@ -455,6 +450,7 @@ function setupARControls() {
   host.addEventListener('touchend', () => { arLastTouch = Date.now(); }, { passive:true });
 
   // Мышь — для тестирования на десктопе
+
   host.addEventListener('mousedown',  e => { arMouseDown=true; arLastTouch=Date.now(); arTouchX=e.clientX; arTouchY=e.clientY; });
   window.addEventListener('mousemove', e => {
     if(!arMouseDown) return;
@@ -472,9 +468,8 @@ function setupARControls() {
   }, { passive:false });
 }
 
-// ─────────────────────────────────────────────
 // ПОПАП ПЛАНЕТЫ
-// ─────────────────────────────────────────────
+
 function showARPopup(id) {
   const p = PLANETS.find(pl => pl.id === id); if(!p) return;
   // Рисуем иконку планеты в маленький canvas
@@ -497,9 +492,8 @@ function setARStatus(text, active) {
   const l = document.getElementById('ar-live');   if(l) l.style.background = active ? '#34d399' : 'rgba(255,255,255,.5)';
 }
 
-// ─────────────────────────────────────────────
 // ОСТАНОВКА AR — освобождаем все ресурсы
-// ─────────────────────────────────────────────
+
 function stopAR() {
   if(arState === 'idle') return;
   arState = 'idle';
