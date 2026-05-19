@@ -16,7 +16,7 @@
     }
     html, body { height:100%; background:var(--bg); font-family:'Space Grotesk',sans-serif; color:#fff; overflow:hidden; }
 
-    /* ── LAUNCH SCREEN ── */
+    /* ── ЭКРАН ЗАПУСКА ── */
     #ar-panel { position:fixed; inset:0; background:#000; overflow:hidden; }
     #ar-launch {
       position:absolute; inset:0;
@@ -43,14 +43,14 @@
     .step-h { font-size:12px; font-weight:600; margin-bottom:2px; }
     .step-t { font-size:11px; color:var(--muted); line-height:1.4; }
 
-    /* ── AR ACTIVE ── */
+    /* ── AR-РЕЖИМ: слои z-index 1(видео) → 2(3D-сцена) → 500(оверлей) ── */
     #ar-active { display:none; }
     #ar-active.on { display:block; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:400; overflow:hidden; }
-    #ar-active video { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; }
+    #ar-active video   { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; }
     #ar-active a-scene { position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; }
     #ar-active .a-canvas { position:absolute; top:0; left:0; width:100% !important; height:100% !important; z-index:2 !important; }
 
-    /* ── OVERLAY ── */
+    /* ── ОВЕРЛЕЙ ── */
     .ar-overlay { position:fixed; inset:0; z-index:500; pointer-events:none; }
 
     .ar-top-bar {
@@ -69,11 +69,8 @@
       font-size:18px; cursor:pointer; backdrop-filter:blur(8px); pointer-events:auto; color:#fff;
     }
 
-    /* Кнопки управления — справа, вертикальный столбик */
-    .ar-controls {
-      position:absolute; top:16px; right:16px;
-      display:flex; flex-direction:column; gap:6px; pointer-events:auto;
-    }
+    /* Кнопки управления — вертикальный столбик справа */
+    .ar-controls { position:absolute; top:16px; right:16px; display:flex; flex-direction:column; gap:6px; pointer-events:auto; }
     .ar-ctrl-btn {
       width:38px; height:38px; border-radius:12px;
       background:rgba(6,8,24,.8); border:1px solid rgba(255,255,255,.15);
@@ -84,6 +81,7 @@
     }
     .ar-ctrl-btn.on { background:rgba(167,139,250,.18); border-color:rgba(167,139,250,.5); color:var(--purple); }
 
+    /* Декоративные уголки рамки */
     .ar-corner { position:absolute; width:22px; height:22px; border-color:rgba(96,165,250,.5); border-style:solid; }
     .ar-tl { top:62px;    left:16px;  border-width:2px 0 0 2px; }
     .ar-tr { top:62px;    right:16px; border-width:2px 2px 0 0; }
@@ -109,29 +107,19 @@
     .ar-pp-head { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
     #ar-pp-ball { border-radius:50%; flex-shrink:0; }
     .ar-pp-title { font-size:18px; font-weight:700; }
-    .ar-pp-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+    .ar-pp-sub   { font-size:11px; color:var(--muted); margin-top:2px; }
     .ar-pp-close { margin-left:auto; width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.13); display:flex; align-items:center; justify-content:center; font-size:13px; cursor:pointer; flex-shrink:0; color:#fff; }
-    .ar-pp-fact { font-size:12px; color:rgba(255,255,255,.78); line-height:1.55; margin-bottom:12px; }
+    .ar-pp-fact  { font-size:12px; color:rgba(255,255,255,.78); line-height:1.55; margin-bottom:12px; }
     .ar-pp-stats { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-    .ar-pp-stat { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:10px; padding:7px 10px; }
+    .ar-pp-stat   { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:10px; padding:7px 10px; }
     .ar-pp-stat-k { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:2px; }
     .ar-pp-stat-v { font-size:12px; font-weight:600; }
-
-    /* ── СКАНИРУЮЩИЙ РЕТИКУЛ ── */
-    #ar-scan { display:none; position:absolute; bottom:28%; left:50%; transform:translateX(-50%); width:110px; height:110px; pointer-events:none; }
-    #ar-scan.on { display:block; }
-    .scan-ring  { position:absolute; inset:0;    border-radius:50%; border:2px solid rgba(167,139,250,.45); animation:scanPulse 1.8s ease-in-out infinite; }
-    .scan-ring2 { position:absolute; inset:18px; border-radius:50%; border:2px solid rgba(167,139,250,.65); animation:scanPulse 1.8s ease-in-out infinite .35s; }
-    .scan-dot   { position:absolute; inset:46px; border-radius:50%; background:rgba(167,139,250,.9); animation:scanPulse 1.8s ease-in-out infinite .7s; }
-    .scan-found .scan-ring  { border-color:rgba(52,211,153,.5);  animation:none; opacity:.9; }
-    .scan-found .scan-ring2 { border-color:rgba(52,211,153,.75); animation:none; opacity:.9; }
-    .scan-found .scan-dot   { background:rgba(52,211,153,.95);   animation:none; }
-    @keyframes scanPulse { 0%,100%{transform:scale(1);opacity:.55} 50%{transform:scale(1.12);opacity:1} }
   </style>
 </head>
 <body>
 
 <div id="ar-panel">
+  <!-- Экран запуска — показывается до нажатия кнопки -->
   <div id="ar-launch">
     <div class="ar-launch-icon">
       <div class="ar-ring"></div><div class="ar-ring2"></div>
@@ -147,25 +135,26 @@
     </div>
   </div>
 
+  <!-- Сюда добавляются видео и a-scene во время AR -->
   <div id="ar-active"></div>
 
+  <!-- Оверлей с кнопками — показывается поверх AR (z-index:500) -->
   <div class="ar-overlay" id="ar-overlay" style="display:none;">
     <div class="ar-back-btn" onclick="stopAR()">←</div>
     <div class="ar-top-bar"><div class="live" id="ar-live"></div><span id="ar-status">Загрузка…</span></div>
-
-    <!-- Кнопки управления -->
     <div class="ar-controls">
-      <button class="ar-ctrl-btn" id="btnPause"  onclick="togglePause()">⏸</button>
+      <button class="ar-ctrl-btn"    id="btnPause"  onclick="togglePause()">⏸</button>
       <button class="ar-ctrl-btn on" id="btnOrbits" onclick="toggleOrbits()">⬤</button>
-      <button class="ar-ctrl-btn" id="btnSpeed"  onclick="cycleSpeed()">1×</button>
+      <button class="ar-ctrl-btn"    id="btnSpeed"  onclick="cycleSpeed()">1×</button>
     </div>
-
     <div class="ar-corner ar-tl"></div><div class="ar-corner ar-tr"></div>
     <div class="ar-corner ar-bl"></div><div class="ar-corner ar-br"></div>
     <div id="ar-hint">Вращай пальцем 🌌</div>
 
+    <!-- Попап с информацией о планете (открывается тапом по модели) -->
     <div id="ar-popup">
       <div class="ar-pp-head">
+        <!-- Иконка планеты рисуется Canvas 2D (градиенты) -->
         <canvas id="ar-pp-ball" width="44" height="44"></canvas>
         <div>
           <div class="ar-pp-title" id="ar-pp-name"></div>
@@ -176,34 +165,40 @@
       <div class="ar-pp-fact"  id="ar-pp-fact"></div>
       <div class="ar-pp-stats" id="ar-pp-stats"></div>
     </div>
-
-    <div id="ar-scan">
-      <div class="scan-ring"></div><div class="scan-ring2"></div><div class="scan-dot"></div>
-    </div>
   </div>
 </div>
 
 <script>
-// ── ДАННЫЕ ПЛАНЕТ ────────────────────────────
+// ─────────────────────────────────────────────
+// ДАННЫЕ ПЛАНЕТ
+// stats: пары [заголовок, значение] для карточки
+// ─────────────────────────────────────────────
 const PLANETS = [
-  { id:'sun',     name:'Солнце',   type:'sun',     sub:'Звезда G-класса',              stats:[['Диаметр','1 392 000 км'],['Масса','99.86% системы'],['Темп.','5 500 °C'],['Возраст','4.6 млрд лет']],    fact:'Солнце содержит 99.86% всей массы системы. Свет от него до Земли идёт 8 минут.' },
-  { id:'mercury', name:'Меркурий', type:'mercury', sub:'1-я планета · Скалистая',      stats:[['Диаметр','4 879 км'],['Год','88 дней'],['Темп.','-180 / +430°C'],['Спутники','0']],                     fact:'Год на Меркурии длится 88 суток, но сутки — целых 176 дней.' },
-  { id:'venus',   name:'Венера',   type:'venus',   sub:'2-я планета · Скалистая',      stats:[['Диаметр','12 104 км'],['Год','225 дней'],['Темп.','462 °C'],['Спутники','0']],                          fact:'Самая горячая планета из-за парникового эффекта — 462°C.' },
-  { id:'earth',   name:'Земля',    type:'earth',   sub:'3-я планета · Скалистая',      stats:[['Диаметр','12 742 км'],['Год','365 дней'],['Темп.','+15°C (ср.)'],['Спутники','1 (Луна)']],              fact:'Единственная планета с жидкой водой и известной жизнью.' },
-  { id:'mars',    name:'Марс',     type:'mars',    sub:'4-я планета · Скалистая',      stats:[['Диаметр','6 779 км'],['Год','687 дней'],['Темп.','-60°C (ср.)'],['Спутники','2']],                      fact:'Олимп на Марсе — самый высокий вулкан в Солнечной системе (21 км).' },
-  { id:'jupiter', name:'Юпитер',  type:'jupiter', sub:'5-я планета · Газовый гигант', stats:[['Диаметр','139 820 км'],['Год','12 лет'],['Ветер','620 км/ч'],['Спутники','95']],                        fact:'Большое Красное Пятно — буря размером с Землю, бушует уже 350 лет.' },
-  { id:'saturn',  name:'Сатурн',  type:'saturn',  sub:'6-я планета · Газовый гигант', stats:[['Диаметр','116 460 км'],['Год','29.5 лет'],['Кольца','280 000 км'],['Спутники','146']],                   fact:'Плотность Сатурна ниже воды — он бы плавал в океане.' },
-  { id:'uranus',  name:'Уран',    type:'uranus',  sub:'7-я планета · Ледяной гигант', stats:[['Диаметр','50 724 км'],['Год','84 года'],['Темп.','-224°C'],['Спутники','28']],                           fact:'Уран вращается лёжа на боку — ось наклонена на 98° после древнего столкновения.' },
-  { id:'neptune', name:'Нептун',  type:'neptune', sub:'8-я планета · Ледяной гигант', stats:[['Диаметр','49 244 км'],['Год','165 лет'],['Ветер','2 100 км/ч'],['Спутники','16']],                      fact:'Нептун — самая ветреная планета. Скорость ветра 2 100 км/ч — быстрее звука.' },
-  { id:'pluto',   name:'Плутон',  type:'pluto',   sub:'Карликовая планета · Пояс Койпера', stats:[['Диаметр','2 376 км'],['Год','248 лет'],['Темп.','-230°C'],['Спутники','5']],                       fact:'На Плутоне есть «Сердце Томба» — светлая равнина в форме сердца размером с Россию.' },
+  { id:'sun',     name:'Солнце',   type:'sun',     sub:'Звезда G-класса',                   stats:[['Диаметр','1 392 000 км'],['Масса','99.86% системы'],['Темп.','5 500 °C'],['Возраст','4.6 млрд лет']],    fact:'Солнце содержит 99.86% всей массы системы. Свет от него до Земли идёт 8 минут.' },
+  { id:'mercury', name:'Меркурий', type:'mercury', sub:'1-я планета · Скалистая',            stats:[['Диаметр','4 879 км'],['Год','88 дней'],['Темп.','-180 / +430°C'],['Спутники','0']],                     fact:'Год на Меркурии длится 88 суток, но сутки — целых 176 дней.' },
+  { id:'venus',   name:'Венера',   type:'venus',   sub:'2-я планета · Скалистая',            stats:[['Диаметр','12 104 км'],['Год','225 дней'],['Темп.','462 °C'],['Спутники','0']],                          fact:'Самая горячая планета из-за парникового эффекта — 462°C.' },
+  { id:'earth',   name:'Земля',    type:'earth',   sub:'3-я планета · Скалистая',            stats:[['Диаметр','12 742 км'],['Год','365 дней'],['Темп.','+15°C (ср.)'],['Спутники','1 (Луна)']],              fact:'Единственная планета с жидкой водой и известной жизнью.' },
+  { id:'mars',    name:'Марс',     type:'mars',    sub:'4-я планета · Скалистая',            stats:[['Диаметр','6 779 км'],['Год','687 дней'],['Темп.','-60°C (ср.)'],['Спутники','2']],                      fact:'Олимп на Марсе — самый высокий вулкан в Солнечной системе (21 км).' },
+  { id:'jupiter', name:'Юпитер',  type:'jupiter', sub:'5-я планета · Газовый гигант',       stats:[['Диаметр','139 820 км'],['Год','12 лет'],['Ветер','620 км/ч'],['Спутники','95']],                        fact:'Большое Красное Пятно — буря размером с Землю, бушует уже 350 лет.' },
+  { id:'saturn',  name:'Сатурн',  type:'saturn',  sub:'6-я планета · Газовый гигант',       stats:[['Диаметр','116 460 км'],['Год','29.5 лет'],['Кольца','280 000 км'],['Спутники','146']],                   fact:'Плотность Сатурна ниже воды — он бы плавал в океане.' },
+  { id:'uranus',  name:'Уран',    type:'uranus',  sub:'7-я планета · Ледяной гигант',       stats:[['Диаметр','50 724 км'],['Год','84 года'],['Темп.','-224°C'],['Спутники','28']],                           fact:'Уран вращается лёжа на боку — ось наклонена на 98° после древнего столкновения.' },
+  { id:'neptune', name:'Нептун',  type:'neptune', sub:'8-я планета · Ледяной гигант',       stats:[['Диаметр','49 244 км'],['Год','165 лет'],['Ветер','2 100 км/ч'],['Спутники','16']],                      fact:'Нептун — самая ветреная планета. Скорость ветра 2 100 км/ч — быстрее звука.' },
+  { id:'pluto',   name:'Плутон',  type:'pluto',   sub:'Карликовая планета · Пояс Койпера',  stats:[['Диаметр','2 376 км'],['Год','248 лет'],['Темп.','-230°C'],['Спутники','5']],                            fact:'На Плутоне есть «Сердце Томба» — светлая равнина в форме сердца размером с Россию.' },
 ];
 
-// ── РИСОВАНИЕ ПЛАНЕТ (Canvas 2D) ─────────────
+// ─────────────────────────────────────────────
+// РИСОВАНИЕ ПЛАНЕТ (Canvas 2D)
+// Используется для иконки в попапе.
+// drawPlanet вызывает функцию _<type> для заливки,
+// затем добавляет общий световой блик поверх.
+// ─────────────────────────────────────────────
 function drawPlanet(ctx, cx, cy, r, type) {
   ctx.save();
+  // Ограничиваем рисование кругом
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
   ({ sun:_sun,mercury:_mercury,venus:_venus,earth:_earth,mars:_mars,
      jupiter:_jupiter,saturn:_saturn,uranus:_uranus,neptune:_neptune,pluto:_pluto }[type])(ctx,cx,cy,r);
+  // Общий световой блик сверху-слева
   const gl=ctx.createRadialGradient(cx-r*.3,cy-r*.3,r*.05,cx-r*.1,cy-r*.1,r*.75);
   gl.addColorStop(0,'rgba(255,255,255,.22)'); gl.addColorStop(.4,'rgba(255,255,255,.05)'); gl.addColorStop(1,'rgba(0,0,0,.3)');
   ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
@@ -220,95 +215,137 @@ function _uranus(c,cx,cy,r){const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,
 function _neptune(c,cx,cy,r){const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);g.addColorStop(0,'#93c5fd');g.addColorStop(.4,'#3b82f6');g.addColorStop(1,'#1e3a8a');c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();c.beginPath();c.ellipse(cx-r*.2,cy+r*.1,r*.22,r*.14,-.3,0,Math.PI*2);c.fillStyle='rgba(30,58,138,.6)';c.fill();c.beginPath();c.ellipse(cx+r*.1,cy-r*.25,r*.12,r*.07,.4,0,Math.PI*2);c.fillStyle='rgba(255,255,255,.25)';c.fill();}
 function _pluto(c,cx,cy,r){const g=c.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);g.addColorStop(0,'#fde68a');g.addColorStop(.4,'#d4a85a');g.addColorStop(1,'#78350f');c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();c.beginPath();c.ellipse(cx+r*.05,cy+r*.1,r*.38,r*.32,.2,0,Math.PI*2);c.fillStyle='rgba(254,243,199,.55)';c.fill();}
 
-// ── AR STATE ─────────────────────────────────
-let arState='idle'; // idle | loading | ready
-let arRotX=0, arRotY=0, arScale=1, arTouchX=0, arTouchY=0, arMouseDown=false;
-let arLastTouch=0, arAutoTimer=null, arPinchDist0=0, arScale0=1;
-let arScene=null, arSolarEl=null, arStream=null, arCamVideo=null, arPlaceListener=null;
+// ─────────────────────────────────────────────
+// AR-СОСТОЯНИЕ
+// ─────────────────────────────────────────────
+let arState = 'idle'; // idle | loading | ready
 
-// Управление орбитами (ручной тик вместо A-Frame animation — для паузы и скорости)
-let arOrbitEls=[], arOrbitTimer=null;
-let arOrbitPaused=false, arShowOrbits=true;
+// Трансформация модели: вращение и масштаб от жестов
+let arRotX=0, arRotY=0, arScale=1;
+let arTouchX=0, arTouchY=0, arMouseDown=false;
+let arLastTouch=0, arPinchDist0=0, arScale0=1;
+
+// Таймеры: авторотация и орбитный тик
+let arAutoTimer=null, arOrbitTimer=null;
+
+// Ссылки на DOM-объекты AR
+let arScene=null, arSolarEl=null, arStream=null, arCamVideo=null;
+
+// Состояние кнопок управления
+let arOrbitEls=[], arOrbitPaused=false, arShowOrbits=true;
 let arSpeedIdx=0, arSpeedMult=1;
-const SPEEDS=[1,2,5], SPEED_LABELS=['1×','2×','5×'];
-// Скорость орбит: градусов за 16мс при множителе 1× (= 360 / dur_ms * 16)
+const SPEEDS       = [1, 2, 5];
+const SPEED_LABELS = ['1×', '2×', '5×'];
+
+// Угловая скорость орбит: градусов за 16мс при скорости 1×
+// Формула: 360 / (период_в_мс) * 16
 const ORBIT_SPD = { mercury:1.44, venus:0.823, earth:0.64, mars:0.443, jupiter:0.288, saturn:0.206, uranus:0.152, neptune:0.12, pluto:0.096 };
 
-// ── Кнопки управления ────────────────────────
+// ─────────────────────────────────────────────
+// КНОПКИ УПРАВЛЕНИЯ
+// ─────────────────────────────────────────────
 function togglePause() {
   arOrbitPaused = !arOrbitPaused;
   const b = document.getElementById('btnPause');
   b.textContent = arOrbitPaused ? '▶' : '⏸';
   b.classList.toggle('on', arOrbitPaused);
 }
+
 function toggleOrbits() {
   arShowOrbits = !arShowOrbits;
   const b = document.getElementById('btnOrbits');
   b.textContent = arShowOrbits ? '⬤' : '○';
   b.classList.toggle('on', arShowOrbits);
+  // data-orbit-ring — атрибут у колец, не у самих планет
   if(arScene) arScene.querySelectorAll('[data-orbit-ring]').forEach(el => el.setAttribute('visible', arShowOrbits));
 }
+
 function cycleSpeed() {
-  arSpeedIdx = (arSpeedIdx+1) % SPEEDS.length;
+  arSpeedIdx = (arSpeedIdx + 1) % SPEEDS.length;
   arSpeedMult = SPEEDS[arSpeedIdx];
   document.getElementById('btnSpeed').textContent = SPEED_LABELS[arSpeedIdx];
 }
 
-// ── ЗАПУСК AR ────────────────────────────────
+// ─────────────────────────────────────────────
+// ЗАПУСК AR
+// ─────────────────────────────────────────────
 async function startAR() {
   if(arState !== 'idle') return;
   arState = 'loading';
   const btn = document.getElementById('btn-start-ar');
-  btn.textContent='⏳ Запуск…'; btn.style.opacity='0.7';
+  btn.textContent = '⏳ Запуск…'; btn.style.opacity = '0.7';
+
+  // iOS 13+ требует явного разрешения на гироскоп
   if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function')
     try { await DeviceOrientationEvent.requestPermission(); } catch(e) {}
-  btn.textContent='⏳ Камера…';
+
+  btn.textContent = '⏳ Камера…';
+  // Запрашиваем тыловую камеру (environment) для AR
   navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} }, audio:false })
     .then(stream => {
       arStream = stream;
+      // Создаём видеоэлемент как фон AR (z-index:1)
       arCamVideo = Object.assign(document.createElement('video'), { srcObject:stream, autoplay:true, muted:true, playsInline:true });
-      arCamVideo.setAttribute('playsinline','');
+      arCamVideo.setAttribute('playsinline',''); // обязательно для Safari
       document.getElementById('ar-active').appendChild(arCamVideo);
       arCamVideo.play().catch(()=>{});
-      document.getElementById('ar-launch').style.display='none';
+
+      document.getElementById('ar-launch').style.display  = 'none';
       document.getElementById('ar-active').classList.add('on');
-      document.getElementById('ar-overlay').style.display='block';
-      btn.textContent='⏳ Загрузка 3D…';
-      const aframeSrc = 'https://aframe.io/releases/1.3.0/aframe.min.js';
+      document.getElementById('ar-overlay').style.display = 'block';
+      btn.textContent = '⏳ Загрузка 3D…';
+
+      // Загружаем A-Frame динамически — только когда он нужен
       if(window.AFRAME) { injectARScene(); return; }
-      const s=document.createElement('script'); s.src=aframeSrc; s.onload=injectARScene; document.head.appendChild(s);
+      const s = document.createElement('script');
+      s.src = 'https://aframe.io/releases/1.3.0/aframe.min.js';
+      s.onload = injectARScene;
+      document.head.appendChild(s);
     })
     .catch(() => {
-      arState='idle'; btn.textContent='⚠️ Нет доступа к камере'; btn.style.opacity='1';
-      setTimeout(()=>{ btn.textContent='📡 Запустить AR'; }, 3000);
+      arState = 'idle';
+      btn.textContent = '⚠️ Нет доступа к камере'; btn.style.opacity = '1';
+      setTimeout(() => { btn.textContent = '📡 Запустить AR'; }, 3000);
     });
 }
 
-// ── A-FRAME СЦЕНА ────────────────────────────
+// ─────────────────────────────────────────────
+// A-FRAME СЦЕНА
+// buildARScene() возвращает HTML-строку сцены.
+// Ключевые решения:
+//   • look-controls magicWindowTrackingEnabled — камера следует гироскопу телефона,
+//     поэтому модель кажется стоящей в пространстве при повороте устройства
+//   • cursor rayOrigin:mouse — рейкаст идёт из точки касания, а не из центра экрана,
+//     это даёт точное попадание в планету при тапе
+//   • data-orbit-id на entity групп — для ручного тика вращения
+//   • data-orbit-ring на кольцах — для переключения видимости орбит
+// ─────────────────────────────────────────────
 function buildARScene() {
   const C = { sun:'#f9a23c',mercury:'#b0aaa4',venus:'#e8c47a',earth:'#3b82f6',mars:'#e0533b',jupiter:'#d9913f',saturn:'#d8b863',uranus:'#6fdfe8',neptune:'#3b6fd4',pluto:'#cdab78' };
-  // Орбиты: [id, orbitRadius, planetRadius]
+  // [id, радиус орбиты, радиус планеты]
   const P = [['mercury',1.0,0.09],['venus',1.45,0.12],['earth',1.95,0.14],['mars',2.5,0.10],
              ['jupiter',3.2,0.28],['saturn',3.95,0.22],['uranus',4.55,0.17],['neptune',5.1,0.155],['pluto',5.55,0.07]];
+
   let inner = `
     <a-sphere radius="0.52" position="0 0 0" class="clickable" data-planet-id="sun"
       material="color:${C.sun};emissive:${C.sun};emissiveIntensity:1;roughness:1;metalness:0"
       animation="property:rotation;to:0 360 0;dur:20000;loop:true;easing:linear"></a-sphere>
     <a-light type="point" color="#ffe0a0" intensity="2.2" position="0 0 0" distance="22" decay="1.6"></a-light>`;
-  P.forEach(([id,oR,pR]) => {
-    // Орбитальное кольцо — data-orbit-ring для управления видимостью
+
+  P.forEach(([id, oR, pR]) => {
     inner += `
     <a-torus data-orbit-ring radius="${oR}" radius-tubular="0.007" rotation="90 0 0"
       material="color:#8899cc;opacity:0.22;transparent:true;shader:flat"></a-torus>
-    <!-- data-orbit-id для ручного тика вращения -->
     <a-entity data-orbit-id="${id}">
       <a-sphere radius="${pR}" position="${oR} 0 0" class="clickable" data-planet-id="${id}"
         material="color:${C[id]};roughness:0.78;metalness:0.04;emissive:${C[id]};emissiveIntensity:0.07"></a-sphere>`;
-    if(id==='saturn') inner += `
+    // Кольца Сатурна — отдельный torus внутри той же orbit-entity
+    if(id === 'saturn') inner += `
       <a-torus position="${oR} 0 0" radius="${(pR*2).toFixed(3)}" radius-tubular="${(pR*.45).toFixed(3)}"
         rotation="72 0 0" material="color:#e8c878;opacity:0.8;transparent:true;shader:flat"></a-torus>`;
     inner += `\n    </a-entity>`;
   });
+
   return `<a-scene embedded vr-mode-ui="enabled:false" renderer="antialias:true;alpha:true;" background="transparent:true">
     <a-light type="ambient" color="#202848" intensity="1.2"></a-light>
     <a-entity id="ar-solar" position="0 -1.5 -3.5" rotation="80 0 0" scale="0.4 0.4 0.4" visible="false">${inner}
@@ -320,22 +357,28 @@ function buildARScene() {
 
 function injectARScene() {
   const host = document.getElementById('ar-active');
-  const wrap = document.createElement('div'); wrap.innerHTML = buildARScene().trim();
+  const wrap = document.createElement('div');
+  wrap.innerHTML = buildARScene().trim();
   host.appendChild(wrap.firstElementChild);
   arScene = host.querySelector('a-scene');
+
   const onLoaded = () => {
-    document.getElementById('btn-start-ar').textContent='📡 Запустить AR';
-    document.getElementById('btn-start-ar').style.opacity='1';
+    document.getElementById('btn-start-ar').textContent = '📡 Запустить AR';
+    document.getElementById('btn-start-ar').style.opacity = '1';
+
     arSolarEl = document.getElementById('ar-solar');
-    // Собираем orbit-entities для ручного тика
+
+    // Собираем orbit-entities для ручного тика вращения
     arOrbitEls = [];
     arScene.querySelectorAll('[data-orbit-id]').forEach(el => {
-      arOrbitEls.push({ el, spd: ORBIT_SPD[el.getAttribute('data-orbit-id')] || 0.3, rot:0 });
+      arOrbitEls.push({ el, spd: ORBIT_SPD[el.getAttribute('data-orbit-id')] || 0.3, rot: 0 });
     });
-    // Клик по планете
+
+    // Тап по планете открывает попап
     arScene.querySelectorAll('[data-planet-id]').forEach(el =>
-      el.addEventListener('click', () => { if(arState==='ready') showARPopup(el.getAttribute('data-planet-id')); })
+      el.addEventListener('click', () => { if(arState === 'ready') showARPopup(el.getAttribute('data-planet-id')); })
     );
+
     placeModel();
   };
   if(arScene.hasLoaded) onLoaded(); else arScene.addEventListener('loaded', onLoaded);
@@ -343,17 +386,20 @@ function injectARScene() {
 
 function placeModel() {
   if(arState === 'ready') return;
-  arState='ready';
-  document.getElementById('ar-scan').classList.remove('on','scan-found');
-  arRotX=80; arRotY=0; arScale=0.4;
-  arSolarEl.setAttribute('position','0 -1.5 -3.5');
-  arSolarEl.setAttribute('rotation',`${arRotX} ${arRotY} 0`);
-  arSolarEl.setAttribute('scale',`${arScale} ${arScale} ${arScale}`);
-  arSolarEl.setAttribute('visible','true');
-  setARStatus('AR · вращай пальцем', true);
-  document.getElementById('ar-hint').textContent='Вращай пальцем 🌌';
+  arState = 'ready';
 
-  // Ручной тик орбит (16мс ≈ 60fps)
+  // Начальная позиция: чуть ниже камеры и перед ней, наклон 80° — модель лежит на «полу»
+  arRotX = 80; arRotY = 0; arScale = 0.4;
+  arSolarEl.setAttribute('position', '0 -1.5 -3.5');
+  arSolarEl.setAttribute('rotation', `${arRotX} ${arRotY} 0`);
+  arSolarEl.setAttribute('scale',    `${arScale} ${arScale} ${arScale}`);
+  arSolarEl.setAttribute('visible',  'true');
+  setARStatus('AR · вращай пальцем', true);
+  document.getElementById('ar-hint').textContent = 'Вращай пальцем 🌌';
+
+  // Ручной тик орбит каждые 16мс (~60fps).
+  // A-Frame animation не поддерживает паузу и изменение скорости из JS,
+  // поэтому вращаем orbit-entities вручную через arOrbitPaused / arSpeedMult.
   arOrbitTimer = setInterval(() => {
     if(arOrbitPaused) return;
     arOrbitEls.forEach(o => {
@@ -362,81 +408,123 @@ function placeModel() {
     });
   }, 16);
 
-  // Авторотация модели
+  // Авторотация запускается через 2 секунды после последнего касания
   arAutoTimer = setInterval(() => {
-    if(Date.now()-arLastTouch > 2000) { arRotY+=.15; arSolarEl.setAttribute('rotation',`${arRotX} ${arRotY} 0`); }
+    if(Date.now() - arLastTouch > 2000) {
+      arRotY += 0.15;
+      arSolarEl.setAttribute('rotation', `${arRotX} ${arRotY} 0`);
+    }
   }, 33);
 
   setupARControls();
 }
 
-// ── ЖЕСТЫ ────────────────────────────────────
+// ─────────────────────────────────────────────
+// ЖЕСТЫ
+// touchmove: passive:false — нужно preventDefault(), чтобы страница не скроллилась
+// Масштаб зажат в диапазоне 0.2–3
+// ─────────────────────────────────────────────
 function setupARControls() {
   const host = document.getElementById('ar-active');
+
   host.addEventListener('touchstart', e => {
-    arLastTouch=Date.now();
-    if(e.touches.length===1) { arTouchX=e.touches[0].clientX; arTouchY=e.touches[0].clientY; }
-    else if(e.touches.length===2) { arPinchDist0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); arScale0=arScale; }
+    arLastTouch = Date.now();
+    if(e.touches.length === 1) {
+      arTouchX = e.touches[0].clientX; arTouchY = e.touches[0].clientY;
+    } else if(e.touches.length === 2) {
+      arPinchDist0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      arScale0 = arScale;
+    }
   }, { passive:true });
+
   host.addEventListener('touchmove', e => {
-    e.preventDefault(); arLastTouch=Date.now();
-    if(e.touches.length===1){
-      arRotY+=(e.touches[0].clientX-arTouchX)*.45;
-      arRotX=Math.max(-90,Math.min(90,arRotX+(e.touches[0].clientY-arTouchY)*.3));
-      arSolarEl?.setAttribute('rotation',`${arRotX} ${arRotY} 0`);
-      arTouchX=e.touches[0].clientX; arTouchY=e.touches[0].clientY;
-    } else if(e.touches.length===2){
-      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-      arScale=Math.max(.2,Math.min(3,arScale0*(d/arPinchDist0)));
-      arSolarEl?.setAttribute('scale',`${arScale} ${arScale} ${arScale}`);
+    e.preventDefault(); // останавливает прокрутку страницы во время жеста
+    arLastTouch = Date.now();
+    if(e.touches.length === 1) {
+      arRotY += (e.touches[0].clientX - arTouchX) * 0.45;
+      arRotX  = Math.max(-90, Math.min(90, arRotX + (e.touches[0].clientY - arTouchY) * 0.3));
+      arSolarEl?.setAttribute('rotation', `${arRotX} ${arRotY} 0`);
+      arTouchX = e.touches[0].clientX; arTouchY = e.touches[0].clientY;
+    } else if(e.touches.length === 2) {
+      const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      arScale = Math.max(0.2, Math.min(3, arScale0 * (d / arPinchDist0)));
+      arSolarEl?.setAttribute('scale', `${arScale} ${arScale} ${arScale}`);
     }
   }, { passive:false });
-  host.addEventListener('touchend', ()=>{ arLastTouch=Date.now(); }, { passive:true });
-  host.addEventListener('mousedown', e=>{ arMouseDown=true; arLastTouch=Date.now(); arTouchX=e.clientX; arTouchY=e.clientY; });
-  window.addEventListener('mousemove', e=>{ if(!arMouseDown) return; arLastTouch=Date.now(); arRotY+=(e.clientX-arTouchX)*.4; arRotX=Math.max(-90,Math.min(90,arRotX+(e.clientY-arTouchY)*.25)); arSolarEl?.setAttribute('rotation',`${arRotX} ${arRotY} 0`); arTouchX=e.clientX; arTouchY=e.clientY; });
-  window.addEventListener('mouseup', ()=>{ arMouseDown=false; });
-  host.addEventListener('wheel', e=>{ e.preventDefault(); arScale=Math.max(.2,Math.min(3,arScale-e.deltaY*.001)); arSolarEl?.setAttribute('scale',`${arScale} ${arScale} ${arScale}`); }, { passive:false });
+
+  host.addEventListener('touchend', () => { arLastTouch = Date.now(); }, { passive:true });
+
+  // Мышь — для тестирования на десктопе
+  host.addEventListener('mousedown',  e => { arMouseDown=true; arLastTouch=Date.now(); arTouchX=e.clientX; arTouchY=e.clientY; });
+  window.addEventListener('mousemove', e => {
+    if(!arMouseDown) return;
+    arLastTouch = Date.now();
+    arRotY += (e.clientX - arTouchX) * 0.4;
+    arRotX  = Math.max(-90, Math.min(90, arRotX + (e.clientY - arTouchY) * 0.25));
+    arSolarEl?.setAttribute('rotation', `${arRotX} ${arRotY} 0`);
+    arTouchX = e.clientX; arTouchY = e.clientY;
+  });
+  window.addEventListener('mouseup', () => { arMouseDown = false; });
+  host.addEventListener('wheel', e => {
+    e.preventDefault();
+    arScale = Math.max(0.2, Math.min(3, arScale - e.deltaY * 0.001));
+    arSolarEl?.setAttribute('scale', `${arScale} ${arScale} ${arScale}`);
+  }, { passive:false });
 }
 
-// ── ПОПАП ────────────────────────────────────
+// ─────────────────────────────────────────────
+// ПОПАП ПЛАНЕТЫ
+// ─────────────────────────────────────────────
 function showARPopup(id) {
-  const p = PLANETS.find(pl => pl.id===id); if(!p) return;
-  const bc=document.getElementById('ar-pp-ball'), bctx=bc.getContext('2d');
-  bctx.clearRect(0,0,44,44); drawPlanet(bctx,22,22,20,p.type);
-  document.getElementById('ar-pp-name').textContent=p.name;
-  document.getElementById('ar-pp-sub').textContent=p.sub;
-  document.getElementById('ar-pp-fact').textContent=p.fact;
-  document.getElementById('ar-pp-stats').innerHTML=p.stats.map(([k,v])=>`<div class="ar-pp-stat"><div class="ar-pp-stat-k">${k}</div><div class="ar-pp-stat-v">${v}</div></div>`).join('');
+  const p = PLANETS.find(pl => pl.id === id); if(!p) return;
+  // Рисуем иконку планеты в маленький canvas
+  const bc = document.getElementById('ar-pp-ball');
+  const bctx = bc.getContext('2d');
+  bctx.clearRect(0, 0, 44, 44);
+  drawPlanet(bctx, 22, 22, 20, p.type);
+  document.getElementById('ar-pp-name').textContent  = p.name;
+  document.getElementById('ar-pp-sub').textContent   = p.sub;
+  document.getElementById('ar-pp-fact').textContent  = p.fact;
+  document.getElementById('ar-pp-stats').innerHTML   = p.stats.map(([k,v]) =>
+    `<div class="ar-pp-stat"><div class="ar-pp-stat-k">${k}</div><div class="ar-pp-stat-v">${v}</div></div>`
+  ).join('');
   document.getElementById('ar-popup').classList.add('show');
 }
 function closeARPopup() { document.getElementById('ar-popup').classList.remove('show'); }
 
 function setARStatus(text, active) {
-  const s=document.getElementById('ar-status'); if(s) s.textContent=text;
-  const l=document.getElementById('ar-live'); if(l) l.style.background=active?'#34d399':'rgba(255,255,255,.5)';
+  const s = document.getElementById('ar-status'); if(s) s.textContent = text;
+  const l = document.getElementById('ar-live');   if(l) l.style.background = active ? '#34d399' : 'rgba(255,255,255,.5)';
 }
 
-// ── СТОП ─────────────────────────────────────
+// ─────────────────────────────────────────────
+// ОСТАНОВКА AR — освобождаем все ресурсы
+// ─────────────────────────────────────────────
 function stopAR() {
-  if(arState==='idle') return;
-  arState='idle';
+  if(arState === 'idle') return;
+  arState = 'idle';
+
+  // Останавливаем таймеры
   clearInterval(arAutoTimer); clearInterval(arOrbitTimer);
-  arAutoTimer=null; arOrbitTimer=null; arMouseDown=false;
-  // Сбрасываем кнопки
-  arOrbitPaused=false; arShowOrbits=true; arSpeedIdx=0; arSpeedMult=1;
-  document.getElementById('btnPause').textContent='⏸';  document.getElementById('btnPause').classList.remove('on');
-  document.getElementById('btnOrbits').textContent='⬤'; document.getElementById('btnOrbits').classList.add('on');
-  document.getElementById('btnSpeed').textContent='1×';
+  arAutoTimer = null; arOrbitTimer = null; arMouseDown = false;
+
+  // Сбрасываем кнопки в исходное состояние
+  arOrbitPaused = false; arShowOrbits = true; arSpeedIdx = 0; arSpeedMult = 1;
+  document.getElementById('btnPause').textContent  = '⏸';  document.getElementById('btnPause').classList.remove('on');
+  document.getElementById('btnOrbits').textContent = '⬤';  document.getElementById('btnOrbits').classList.add('on');
+  document.getElementById('btnSpeed').textContent  = '1×';
   closeARPopup();
-  document.getElementById('ar-scan').classList.remove('on','scan-found');
-  if(arPlaceListener) { document.getElementById('ar-active').removeEventListener('click',arPlaceListener); arPlaceListener=null; }
-  if(arStream) { arStream.getTracks().forEach(t=>t.stop()); arStream=null; }
-  if(arCamVideo) { arCamVideo.pause(); arCamVideo.srcObject=null; arCamVideo.remove(); arCamVideo=null; }
-  if(arScene) { try{ arScene.parentNode?.removeChild(arScene); }catch(e){} arScene=null; }
-  arSolarEl=null; arOrbitEls=[];
+
+  // Останавливаем камеру и удаляем DOM-узлы
+  if(arStream)    { arStream.getTracks().forEach(t => t.stop()); arStream = null; }
+  if(arCamVideo)  { arCamVideo.pause(); arCamVideo.srcObject = null; arCamVideo.remove(); arCamVideo = null; }
+  if(arScene)     { try { arScene.parentNode?.removeChild(arScene); } catch(e) {} arScene = null; }
+  arSolarEl = null; arOrbitEls = [];
+
+  // Возвращаем экран запуска
   document.getElementById('ar-active').classList.remove('on');
-  document.getElementById('ar-overlay').style.display='none';
-  document.getElementById('ar-launch').style.display='flex';
+  document.getElementById('ar-overlay').style.display = 'none';
+  document.getElementById('ar-launch').style.display  = 'flex';
 }
 </script>
 </body>
